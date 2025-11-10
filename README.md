@@ -57,16 +57,18 @@ yay -S thefuck  # AUR package
 
 ## Installation
 
-1. Clone this repository:
+1. Install prerequisites:
+   ```bash
+   sudo pacman -S stow git-lfs
+   ```
+
+2. Clone this repository:
    ```bash
    git clone https://github.com/rwwiv/.dotfiles-arch.git ~/.dotfiles
    cd ~/.dotfiles
    ```
 
-2. Install GNU Stow if not already installed:
-   ```bash
-   sudo pacman -S stow
-   ```
+   **Note:** This repository uses Git LFS for images (wallpapers and screenshots). Make sure `git-lfs` is installed before cloning.
 
 3. Stow the packages you want:
    ```bash
