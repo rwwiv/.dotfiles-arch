@@ -1,0 +1,16 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Phaser Stereo
+GenericName=Phaser
+GenericName[ru]=Фейзер
+Comment=This plugin allows to simpulate multi-stage stereo phaser effect
+Comment[ru]=Данный плагин позволяет реализовать многоступенчатый стереоэффект фейзера
+Exec=lsp-plugins-phaser-stereo
+Icon=lsp-plugins
+Terminal=false
+StartupNotify=false
+Keywords=audio;sound;jackd;lsp-plugins;
+Categories=X-LSP-Plugins;
+NotShowIn=GNOME;
+NoDisplay=true

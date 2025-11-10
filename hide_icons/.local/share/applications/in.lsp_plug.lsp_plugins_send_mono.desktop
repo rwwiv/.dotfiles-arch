@@ -1,0 +1,14 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Send Mono
+GenericName=Send
+Comment=This plugin allows to perform audio send using the shared memory
+Exec=lsp-plugins-send-mono
+Icon=lsp-plugins
+Terminal=false
+StartupNotify=false
+Keywords=audio;sound;jackd;lsp-plugins;
+Categories=X-LSP-Plugins;
+NotShowIn=GNOME;
+NoDisplay=true

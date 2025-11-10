@@ -1,0 +1,14 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=A/B Tester x2 Mono
+GenericName=A/B Tester
+Comment=Mono plugin that allows to perform quick A/B test of two channels with blind option
+Exec=lsp-plugins-ab-tester-x2-mono
+Icon=lsp-plugins
+Terminal=false
+StartupNotify=false
+Keywords=audio;sound;jackd;lsp-plugins;
+Categories=X-LSP-Plugins;
+NotShowIn=GNOME;
+NoDisplay=true

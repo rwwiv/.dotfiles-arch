@@ -1,0 +1,15 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=GOTT Compressor Mono
+GenericName=Compressor
+GenericName[ru]=Компрессор
+Comment=Performs Grand Over-The-Top multiband compression of mono channel
+Exec=lsp-plugins-gott-compressor-mono
+Icon=lsp-plugins
+Terminal=false
+StartupNotify=false
+Keywords=audio;sound;jackd;lsp-plugins;
+Categories=X-LSP-Plugins;
+NotShowIn=GNOME;
+NoDisplay=true

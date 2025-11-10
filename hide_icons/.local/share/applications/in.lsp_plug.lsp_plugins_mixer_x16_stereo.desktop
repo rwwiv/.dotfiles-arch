@@ -1,0 +1,16 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=LSP Mixer x16 Stereo
+GenericName=Mixer
+GenericName[ru]=Микшер
+Comment=16 Channels Stereo Mixer
+Comment[ru]=Стерео микшер на 16 каналов
+Exec=lsp-plugins-mixer-x16-stereo
+Icon=lsp-plugins
+Terminal=false
+StartupNotify=false
+Keywords=audio;sound;jackd;lsp-plugins;
+Categories=X-LSP-Plugins;
+NotShowIn=GNOME;
+NoDisplay=true

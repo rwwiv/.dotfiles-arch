@@ -1,0 +1,14 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Multiband Clipper Stereo
+GenericName=Multiband Clipper
+Comment=Advanced multiband peak clipping tool for maximization of output loudness (stereo version)
+Exec=lsp-plugins-mb-clipper-mono
+Icon=lsp-plugins
+Terminal=false
+StartupNotify=false
+Keywords=audio;sound;jackd;lsp-plugins;
+Categories=X-LSP-Plugins;
+NotShowIn=GNOME;
+NoDisplay=true

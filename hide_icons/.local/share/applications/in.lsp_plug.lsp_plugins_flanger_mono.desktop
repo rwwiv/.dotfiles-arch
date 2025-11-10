@@ -1,0 +1,16 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Flanger Mono
+GenericName=Flanger
+GenericName[ru]=Флэнджер
+Comment=This tool allows to simulate the flanging effect for mono signal
+Comment[ru]=Устройство, позволяющее симулировать эффект флэнджера для моносигнала
+Exec=lsp-plugins-flanger-mono
+Icon=lsp-plugins
+Terminal=false
+StartupNotify=false
+Keywords=audio;sound;jackd;lsp-plugins;
+Categories=X-LSP-Plugins;
+NotShowIn=GNOME;
+NoDisplay=true

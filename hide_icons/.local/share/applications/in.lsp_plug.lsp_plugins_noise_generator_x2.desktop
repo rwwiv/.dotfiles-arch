@@ -1,0 +1,16 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Noise Generator x2
+GenericName=Noise Generator
+GenericName[ru]=Генератор шума
+Comment=Generates different kinds of noise for two audio channels.
+Comment[ru]=Генерирует различные виды шума для двух аудиоканалов.
+Exec=lsp-plugins-noise-generator-x2
+Icon=lsp-plugins
+Terminal=false
+StartupNotify=false
+Keywords=audio;sound;jackd;lsp-plugins;
+Categories=X-LSP-Plugins;
+NotShowIn=GNOME;
+NoDisplay=true

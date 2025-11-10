@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+set -e
+
+PG_VERSION=$(sudo cat /var/lib/postgres/data/PG_VERSION)
+
+[[ -z $PG_VERSION ]] && exit 1
+
+# Get the installed postgres version
+INSTALLED_VERSION=$(/usr/bin/postgres --version | grep -oP '\d+' | head -1)
+
+if [ "$PG_VERSION" == "$INSTALLED_VERSION" ]; then
+    echo "Postgres data directory is already at version $PG_VERSION, no upgrade needed"
+    exit 0
+fi
+
+echo "Upgrading postgres from version $PG_VERSION to $INSTALLED_VERSION"
+
+if [ ! -d "/opt/pgsql-$PG_VERSION/bin" ]; then
+    echo "Error: Old postgres binaries not found at /opt/pgsql-$PG_VERSION/bin"
+    exit 1
+fi
+
+# stop postgres
+sudo systemctl stop postgresql
+
+
+# dir init
+sudo mv /var/lib/postgres/data /var/lib/postgres/olddata
+sudo mkdir /var/lib/postgres/data /var/lib/postgres/tmp
+sudo chown postgres:postgres /var/lib/postgres/data /var/lib/postgres/tmp
+
+# begin upgrade
+cd /var/lib/postgres/tmp
+sudo -u postgres initdb -D /var/lib/postgres/data
+sudo -u postgres pg_upgrade -b /opt/pgsql-$PG_VERSION/bin -B /usr/bin -d /var/lib/postgres/olddata -D /var/lib/postgres/data
+sudo -u postgres ./delete_old_cluster.sh
+
+# start postgres
+sudo systemctl start postgresql
+
+sudo -u postgres vacuumdb --all --analyze-in-stages --jobs=$(nproc)

@@ -1,0 +1,16 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Mono Filter
+GenericName=Parametric Filter
+GenericName[ru]=Параметрический фильтр
+Comment=Provides parametric filter for mono channel.
+Comment[ru]=Предоставляет параметрический фильтр моносигнала.
+Exec=lsp-plugins-filter-mono
+Icon=lsp-plugins
+Terminal=false
+StartupNotify=false
+Keywords=audio;sound;jackd;lsp-plugins;
+Categories=X-LSP-Plugins;
+NotShowIn=GNOME;
+NoDisplay=true

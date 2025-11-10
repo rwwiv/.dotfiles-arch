@@ -1,0 +1,16 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Multiband Mono Dynamic Processor
+GenericName=Multiband Dynamic Processor
+GenericName[ru]=Многополосный динамический процессор
+Comment=Performs multiband dynamic processing of mono input signal.
+Comment[ru]=Осуществляет многополосную динамическую обработку входного моносигнала.
+Exec=lsp-plugins-mb-dyna-processor-mono
+Icon=lsp-plugins
+Terminal=false
+StartupNotify=false
+Keywords=audio;sound;jackd;lsp-plugins;
+Categories=X-LSP-Plugins;
+NotShowIn=GNOME;
+NoDisplay=true

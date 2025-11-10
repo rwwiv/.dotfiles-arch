@@ -1,0 +1,16 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=LSP Mixer x8 Stereo
+GenericName=Mixer
+GenericName[ru]=Микшер
+Comment=8 Channels Stereo Mixer
+Comment[ru]=Стерео микшер на 8 каналов
+Exec=lsp-plugins-mixer-x8-stereo
+Icon=lsp-plugins
+Terminal=false
+StartupNotify=false
+Keywords=audio;sound;jackd;lsp-plugins;
+Categories=X-LSP-Plugins;
+NotShowIn=GNOME;
+NoDisplay=true

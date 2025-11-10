@@ -1,0 +1,16 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Multiband Mid-Side Split Stereo Dynamic Processor
+GenericName=Multiband Dynamic Processor
+GenericName[ru]=Многополосный динамический процессор
+Comment=Performs multiband dynamic processing of stereo input signal in Mid-Side mode.
+Comment[ru]=Осуществляет многополосную динамическую обработку входного стереосигнала, обрабатывая центр и сторону по отдельности.
+Exec=lsp-plugins-mb-dyna-processor-ms
+Icon=lsp-plugins
+Terminal=false
+StartupNotify=false
+Keywords=audio;sound;jackd;lsp-plugins;
+Categories=X-LSP-Plugins;
+NotShowIn=GNOME;
+NoDisplay=true

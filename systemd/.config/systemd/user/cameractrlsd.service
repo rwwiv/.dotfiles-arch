@@ -1,0 +1,9 @@
+[Unit]
+Description=CameraCtrls daemon - restore control values
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/python3.13/site-packages/CameraCtrls/cameractrlsd.py
+
+[Install]
+WantedBy=graphical-session.target

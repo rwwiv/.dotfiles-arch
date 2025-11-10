@@ -1,0 +1,16 @@
+theme = "catppuccin_mocha"
+
+[editor.file-picker]
+hidden = true
+
+[editor.cursor-shape]
+normal = "block"
+insert = "bar"
+select = "underline"
+
+# [editor.soft-wrap]
+# enable = true
+# max-wrap = 25
+
+[editor.indent-guides]
+render = true

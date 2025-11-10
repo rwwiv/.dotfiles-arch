@@ -1,0 +1,16 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Multiband Stero Sidechain Dynamic Processor
+GenericName=Multiband Sidechain Dynamic Processor
+GenericName[ru]=Многополосный динамический процессор с боковой цепью
+Comment=Performs multiband dynamic processing of stereo input signal. Flexible sidechain-control configuration and additional sidechain inputs are provided.
+Comment[ru]=Осуществляет многополосную динамическую обработку стереосигнала. Имеет дополнительный вход для гибко конфигурируемой боковой цепи управления.
+Exec=lsp-plugins-sc-mb-dyna-processor-stereo
+Icon=lsp-plugins
+Terminal=false
+StartupNotify=false
+Keywords=audio;sound;jackd;lsp-plugins;
+Categories=X-LSP-Plugins;
+NotShowIn=GNOME;
+NoDisplay=true

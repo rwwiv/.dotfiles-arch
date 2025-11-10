@@ -1,0 +1,133 @@
+@import "../omarchy/current/theme/waybar.css";
+
+* {
+  border-radius: 0;
+  min-height: 0;
+  font-family: "Hack Nerd Font";
+}
+
+window {
+  background-color: @background;
+}
+
+
+.modules-left {
+  font-size: 15px;
+  margin-left: 2px;
+}
+
+.modules-center {
+  font-size: 15px;
+}
+
+.modules-right {
+  font-size: 16px;
+  margin-right: 12px;
+}
+
+#workspaces button {
+  all: initial;
+  color: @foreground;
+  padding: 0 6px;
+  margin: 0 1.5px;
+  min-width: 9px;
+}
+
+
+#workspaces button.active {
+  font-weight: bold;
+  color: #f5a97f;
+}
+ 
+
+#workspaces button.empty {
+  opacity: 0.5;
+}
+
+#cpu,
+#pulseaudio,
+#pulseaudio.microphone,
+#custom-omarchy,
+#custom-screenrecording-indicator,
+#custom-update {
+  color: @foreground;
+  min-width: 12px;
+  margin: 0 12px;
+}
+
+#battery {
+  color: @foreground;
+  min-width: 12px;
+}
+
+#battery.warning {
+  color: #9b3a03;
+}
+
+#battery.critical {
+  color: #94040d;
+}
+
+#battery.icon {
+  margin: 0 12px;
+}
+
+#pulseaudio.microphone.source-muted {
+  margin-right: 16px;
+  margin-left: 8.5px;
+}
+
+#tray {
+  color: @foreground;
+  margin-right: 10px;
+}
+
+#bluetooth {
+  color: @foreground;
+  margin: 0 6px 0 12px;
+}
+
+#network {
+  color: @foreground;
+  margin: 0 18px;
+}
+
+#custom-expand-icon {
+  color: @foreground;
+  font-size: 12px;
+  font-weight: bold;
+  margin-bottom: 6px;
+  margin-right: 10px;
+}
+
+tooltip {
+  color: @foreground;
+  padding: 2px;
+}
+
+#custom-update {
+  color: @foreground;
+  font-size: 10px;
+}
+
+#clock {
+  color: @foreground;
+  margin-left: 8.75px;
+}
+
+.hidden {
+  color: @foreground;
+  opacity: 0;
+}
+
+
+#custom-screenrecording-indicator {
+  color: @foreground;
+  min-width: 12px;
+  margin-left: 8.75px;
+  font-size: 10px;
+}
+
+#custom-screenrecording-indicator.active {
+  color: #a55555;
+}

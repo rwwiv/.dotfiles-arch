@@ -1,0 +1,16 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Chorus Stereo
+GenericName=Chorus
+GenericName[ru]=Хорус
+Comment=This tool allows to simulate the stereo chorus effect
+Comment[ru]=Устройство, позволяющее симулировать эффект хоруса для стереосигнала
+Exec=lsp-plugins-chorus-stereo
+Icon=lsp-plugins
+Terminal=false
+StartupNotify=false
+Keywords=audio;sound;jackd;lsp-plugins;
+Categories=X-LSP-Plugins;
+NotShowIn=GNOME;
+NoDisplay=true

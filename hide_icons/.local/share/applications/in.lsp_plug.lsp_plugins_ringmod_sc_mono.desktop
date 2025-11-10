@@ -1,0 +1,14 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Ringmod Sidechain Mono
+GenericName=Ringmod Sidechain
+Comment=This plugin allows to apply a specific sidechaining technique based on ring modulation and subtraction of the original signal
+Exec=lsp-plugins-ringmod-sc-mono
+Icon=lsp-plugins
+Terminal=false
+StartupNotify=false
+Keywords=audio;sound;jackd;lsp-plugins;
+Categories=X-LSP-Plugins;
+NotShowIn=GNOME;
+NoDisplay=true

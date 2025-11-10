@@ -1,0 +1,16 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Phaser Mono
+GenericName=Phaser
+GenericName[ru]=Фейзер
+Comment=This plugin allows to simpulate multi-stage mono phaser effect
+Comment[ru]=Данный плагин позволяет реализовать многоступенчатый моноэффект фейзера
+Exec=lsp-plugins-phaser-mono
+Icon=lsp-plugins
+Terminal=false
+StartupNotify=false
+Keywords=audio;sound;jackd;lsp-plugins;
+Categories=X-LSP-Plugins;
+NotShowIn=GNOME;
+NoDisplay=true

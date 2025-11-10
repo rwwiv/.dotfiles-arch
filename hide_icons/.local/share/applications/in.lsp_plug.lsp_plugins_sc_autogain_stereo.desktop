@@ -1,0 +1,14 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Sidechain Autogain Stereo
+GenericName=Autogain
+Comment=This plugin allows to stick the loudness of the audio to the desired level and provides additional sidechain input
+Exec=lsp-plugins-sc-autogain-stereo
+Icon=lsp-plugins
+Terminal=false
+StartupNotify=false
+Keywords=audio;sound;jackd;lsp-plugins;
+Categories=X-LSP-Plugins;
+NotShowIn=GNOME;
+NoDisplay=true

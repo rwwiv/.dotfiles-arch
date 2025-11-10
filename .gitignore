@@ -1,0 +1,17 @@
+# Compiled zsh files
+*.zwc
+
+# Backup files
+*.bak
+*.backup
+*.old
+*~
+
+# Editor files
+*.swp
+*.swo
+
+# Local override files (not directories)
+*.local
+!.local/
+!**/.local/

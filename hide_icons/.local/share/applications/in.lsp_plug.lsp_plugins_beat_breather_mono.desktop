@@ -1,0 +1,14 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Beat Breather
+GenericName=Beat Breather
+Comment=This plugin allows to drive much more dynamics into punchy sounds like drums and make them breathe again
+Exec=lsp-plugins-beat-breather-mono
+Icon=lsp-plugins
+Terminal=false
+StartupNotify=false
+Keywords=audio;sound;jackd;lsp-plugins;
+Categories=X-LSP-Plugins;
+NotShowIn=GNOME;
+NoDisplay=true

@@ -1,0 +1,14 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Referencer Mono
+GenericName=Referencer
+Comment=Referencer plugin allows you to load your preferred reference files and compare them with your mix
+Exec=lsp-plugins-referencer-mono
+Icon=lsp-plugins
+Terminal=false
+StartupNotify=false
+Keywords=audio;sound;jackd;lsp-plugins;
+Categories=X-LSP-Plugins;
+NotShowIn=GNOME;
+NoDisplay=true

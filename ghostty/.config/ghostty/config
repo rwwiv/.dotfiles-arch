@@ -1,0 +1,29 @@
+# Dynamic theme colors
+config-file = ?"~/.config/omarchy/current/theme/ghostty.conf"
+
+# Font
+font-family = "Hack Nerd Font Mono"
+font-style = Regular
+font-size = 11
+
+# Window
+window-theme = ghostty
+window-padding-x = 8
+window-padding-y = 8
+confirm-close-surface=false
+resize-overlay = never
+gtk-toolbar-style = flat
+
+# Cursor styling
+cursor-style = "bar"
+cursor-style-blink = true
+
+# Keyboard bindings
+keybind = shift+insert=paste_from_clipboard
+keybind = control+insert=copy_to_clipboard
+
+# SSH session terminfo
+shell-integration-features = cursor, sudo, ssh-env
+keybind = shift+enter=text:\x1b\r
+
+command = /usr/bin/zsh

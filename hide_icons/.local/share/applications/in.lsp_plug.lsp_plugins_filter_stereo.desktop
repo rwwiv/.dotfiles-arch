@@ -1,0 +1,16 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Stereo Filter
+GenericName=Parametric Filter
+GenericName[ru]=Параметрический фильтр
+Comment=Provides parametric filter for stereo channel.
+Comment[ru]=Предоставляет параметрический фильтр стереосигнала.
+Exec=lsp-plugins-filter-stereo
+Icon=lsp-plugins
+Terminal=false
+StartupNotify=false
+Keywords=audio;sound;jackd;lsp-plugins;
+Categories=X-LSP-Plugins;
+NotShowIn=GNOME;
+NoDisplay=true

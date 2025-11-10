@@ -1,0 +1,15 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=GOTT Compressor LeftRight
+GenericName=Compressor
+GenericName[ru]=Компрессор
+Comment=Performs Grand Over-The-Top multiband compression of individual left and right channels of stereo signal
+Exec=lsp-plugins-gott-compressor-lr
+Icon=lsp-plugins
+Terminal=false
+StartupNotify=false
+Keywords=audio;sound;jackd;lsp-plugins;
+Categories=X-LSP-Plugins;
+NotShowIn=GNOME;
+NoDisplay=true
