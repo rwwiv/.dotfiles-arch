@@ -126,20 +126,6 @@ yay -S thefuck  # AUR package
 
 See `hypr/.config/hypr/bindings.conf` for full list.
 
-### Shell Aliases
-
-| Alias | Command | Description |
-|-------|---------|-------------|
-| `ls` | `eza -lh --group-directories-first --icons=auto` | Enhanced file listing |
-| `la` | `ls -a` | List all files |
-| `lt` | `eza --tree --level=2 --long --icons --git` | Tree view |
-| `ff` | `fzf --preview 'bat ...'` | Fuzzy find with preview |
-| `cd` | `zoxide` | Smart directory jumping |
-| `lg` | `lazygit` | Git TUI |
-| `ld` | `lazydocker` | Docker TUI |
-| `hx` | `helix` | Helix editor |
-| `hq` | `harlequin` | Database TUI |
-
 ### Useful Functions
 
 - `compress <dir>` - Create tar.gz archive
