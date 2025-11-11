@@ -1,6 +1,5 @@
 # dotfiles
 
-<!-- Badges section - can be reverted if needed -->
 ![Arch Linux](https://img.shields.io/badge/Arch%20Linux-1793D1?style=flat&logo=arch-linux&logoColor=white)
 ![Hyprland](https://img.shields.io/badge/Hyprland-58E1FF?style=flat&logo=wayland&logoColor=black)
 ![Zsh](https://img.shields.io/badge/Zsh-F15A24?style=flat&logo=gnu-bash&logoColor=white)
@@ -140,6 +139,10 @@ If you prefer manual installation:
 - `upgrade-pg` - PostgreSQL database upgrade helper
   - Simplifies major version upgrades
   - Usage: `upgrade-pg`
+- `create-postgres-db` - Create PostgreSQL database
+  - Usage: `create-postgres-db <user> <pass> [db]`
+- `tunnelctl` - Manage named SSH tunnels
+  - Usage: `tunnelctl up|down|status <name>`
 
 See `bin/.local/bin/` for script sources.
 
@@ -148,26 +151,9 @@ See `bin/.local/bin/` for script sources.
 - `compress <dir>` - Create tar.gz archive
 - `decompress <file>` - Extract tar.gz archive
 - `img2jpg <file>` - Convert image to JPG
-- `create-postgres-db <user> <pass> [db]` - Create PostgreSQL database
-- `tunnelctl up|down|status <name>` - Manage named SSH tunnels
 
 See `zsh/.zsh/conf/` for full configuration.
 
-## Customization
-
-Each package is self-contained and can be modified independently. After making changes:
-
-1. Edit the files in the respective package directory
-2. Changes are automatically reflected (symlinks)
-3. Commit and push your changes
-
-## Unstowing
-
-To remove symlinks for a package:
-
-```bash
-stow -D package-name
-```
 
 ## License
 
