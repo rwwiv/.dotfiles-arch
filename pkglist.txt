@@ -11,3 +11,4 @@ starship
 fastfetch
 ttf-hack-nerd
 easyeffects
+1password
