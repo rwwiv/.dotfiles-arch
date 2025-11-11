@@ -3,6 +3,7 @@ stow
 git
 git-lfs
 zsh
+networkd-dispatcher
 hyprland
 waybar
 ghostty

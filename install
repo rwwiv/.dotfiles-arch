@@ -133,6 +133,25 @@ else
     fi
 fi
 
+# Stow system files (requires root)
+echo
+if gum confirm "Stow system files? (requires root permissions)"; then
+    echo
+    gum style --foreground 212 "Stowing system files..."
+    echo
+
+    if [[ ! -f "$DOTFILES_DIR/stow-system" ]]; then
+        gum style --foreground 196 "✗ stow-system script not found"
+    elif sudo "$DOTFILES_DIR/stow-system"; then
+        echo
+        gum style --foreground 82 "✓ System files stowed successfully"
+    else
+        echo
+        gum style --foreground 196 "✗ Failed to stow system files"
+    fi
+    echo
+fi
+
 # Configure default applications
 echo
 if gum confirm "Configure zathura as default PDF reader?"; then
