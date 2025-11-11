@@ -14,6 +14,9 @@ normal = "block"
 insert = "bar"
 select = "underline"
 
+[editor.soft-wrap]
+enable = true
+
 [editor.indent-guides]
 render = true
 
