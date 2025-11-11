@@ -1,5 +1,11 @@
 theme = "catppuccin_mocha"
 
+[editor]
+cursorline = true
+color-modes = true
+bufferline = "multiple"
+end-of-line-diagnostics = "hint"
+
 [editor.file-picker]
 hidden = true
 
@@ -8,9 +14,19 @@ normal = "block"
 insert = "bar"
 select = "underline"
 
-# [editor.soft-wrap]
-# enable = true
-# max-wrap = 25
-
 [editor.indent-guides]
 render = true
+
+[editor.inline-diagnostics]
+cursor-line = "warning"
+
+[editor.lsp]
+display-inlay-hints = true
+
+[editor.statusline]
+left = ["mode", "spinner"]
+center = ["file-name"]
+right = ["diagnostics", "selections", "position", "file-type"]
+mode.normal = "NORMAL"
+mode.insert = "INSERT"
+mode.select = "SELECT"
