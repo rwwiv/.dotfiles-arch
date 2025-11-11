@@ -1,0 +1,27 @@
+# Optional packages for enhanced functionality
+
+# Development tools
+zed
+mise
+
+# Enhanced CLI tools
+eza
+fzf
+bat
+zoxide
+lazygit
+lazydocker
+gum
+
+# Python tooling
+uv
+
+# Database tools
+postgresql
+harlequin
+
+# Image processing
+imagemagick
+
+# Command correction (AUR)
+thefuck

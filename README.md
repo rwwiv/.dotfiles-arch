@@ -29,38 +29,13 @@ This repository contains my dotfiles managed with [GNU Stow](https://www.gnu.org
 
 ## Dependencies
 
-### Core
-```bash
-sudo pacman -S stow git zsh hyprland waybar ghostty helix starship fastfetch ttf-hack-nerd
-```
-
-### Optional
-```bash
-# Development tools
-sudo pacman -S zed mise
-
-# Enhanced CLI tools
-sudo pacman -S eza fzf bat zoxide lazygit lazydocker gum
-
-# Python tooling
-sudo pacman -S uv
-
-# Database tools
-sudo pacman -S postgresql harlequin
-
-# Image processing
-sudo pacman -S imagemagick
-
-# Command correction
-yay -S thefuck  # AUR package
-```
+Package lists are provided in `pkglist.txt` (core) and `pkglist-optional.txt` (optional). The [interactive installer](#quick-start-recommended) will handle installing these automatically.
 
 ## Installation
 
-1. Install prerequisites:
-   ```bash
-   sudo pacman -S stow git-lfs
-   ```
+### Quick Start (Recommended)
+
+1. Install [yay](https://github.com/Jguer/yay) (AUR helper) - see their [installation instructions](https://github.com/Jguer/yay#installation)
 
 2. Clone this repository:
    ```bash
@@ -68,7 +43,32 @@ yay -S thefuck  # AUR package
    cd ~/.dotfiles
    ```
 
-   **Note:** This repository uses Git LFS for images (wallpapers and screenshots). Make sure `git-lfs` is installed before cloning.
+   **Note:** This repository uses Git LFS for images (wallpapers and screenshots).
+
+3. Run the interactive installer:
+   ```bash
+   ./install
+   ```
+
+   The installer will:
+   - Install gum (if needed) for interactive prompts
+   - Guide you through installing core and optional packages
+   - Let you choose which dotfiles to stow to your home directory
+
+### Manual Installation
+
+If you prefer manual installation:
+
+1. Install [yay](https://github.com/Jguer/yay) (AUR helper) - see their [installation instructions](https://github.com/Jguer/yay#installation)
+
+2. Install packages manually:
+   ```bash
+   # Core packages (required)
+   yay -S --needed - < pkglist.txt
+
+   # Optional packages
+   yay -S --needed - < pkglist-optional.txt
+   ```
 
 3. Stow the packages you want:
    ```bash

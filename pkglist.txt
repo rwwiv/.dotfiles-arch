@@ -1,0 +1,13 @@
+# Core packages required for basic dotfiles functionality
+stow
+git
+git-lfs
+zsh
+hyprland
+waybar
+ghostty
+helix
+starship
+fastfetch
+ttf-hack-nerd
+easyeffects
