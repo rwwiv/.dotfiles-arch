@@ -133,6 +133,17 @@ else
     fi
 fi
 
+# Configure default applications
+echo
+if gum confirm "Configure zathura as default PDF reader?"; then
+    if xdg-mime default org.pwmt.zathura.desktop application/pdf; then
+        gum style --foreground 82 "✓ Zathura set as default PDF reader"
+    else
+        gum style --foreground 196 "✗ Failed to set zathura as default PDF reader"
+    fi
+    echo
+fi
+
 echo
 gum style \
     --border double \

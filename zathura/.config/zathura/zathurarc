@@ -1,0 +1,15 @@
+# Minimal UI configuration
+set statusbar-h-padding 0
+set statusbar-v-padding 0
+set page-padding 1
+
+# Toggle statusbar with Ctrl+n (default) or 'b':
+map b toggle_statusbar
+
+# Hide statusbar by default:
+set guioptions none
+
+# Recolor (dark mode) - uncomment if desired:
+# set recolor true
+# set recolor-lightcolor "#000000"
+# set recolor-darkcolor "#E0E0E0"

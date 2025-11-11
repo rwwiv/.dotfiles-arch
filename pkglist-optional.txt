@@ -23,5 +23,9 @@ harlequin
 # Image processing
 imagemagick
 
+# Document viewers
+zathura
+zathura-pdf-poppler
+
 # Command correction (AUR)
 thefuck
