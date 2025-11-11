@@ -40,7 +40,7 @@ sudo pacman -S stow git zsh hyprland waybar ghostty helix starship fastfetch ttf
 sudo pacman -S zed mise
 
 # Enhanced CLI tools
-sudo pacman -S eza fzf bat zoxide lazygit lazydocker
+sudo pacman -S eza fzf bat zoxide lazygit lazydocker gum
 
 # Python tooling
 sudo pacman -S uv
@@ -113,25 +113,25 @@ yay -S thefuck  # AUR package
 
 ## Quick Reference
 
-### Key Bindings (Hyprland)
+### Custom Scripts
 
-| Shortcut | Action |
-|----------|--------|
-| `Super + Enter` | Open terminal |
-| `Super + Shift + F` | File manager |
-| `Super + Shift + B` | Browser |
-| `Super + Shift + N` | Editor |
-| `Super + Shift + T` | Activity monitor (btop) |
-| `Super + Shift + /` | Password manager |
+- `setup-btrfs-trim` - Configure TRIM support for encrypted btrfs systems
+  - Adds `:allow-discards` to LUKS cryptdevice parameter
+  - Adds `discard=async` to btrfs rootflags
+  - Interactive prompts using `gum` with automatic backup/restore
+  - Usage: `sudo setup-btrfs-trim`
+- `upgrade-pg` - PostgreSQL database upgrade helper
+  - Simplifies major version upgrades
+  - Usage: `upgrade-pg`
 
-See `hypr/.config/hypr/bindings.conf` for full list.
+See `bin/.local/bin/` for script sources.
 
 ### Useful Functions
 
 - `compress <dir>` - Create tar.gz archive
 - `decompress <file>` - Extract tar.gz archive
 - `img2jpg <file>` - Convert image to JPG
-- `create_postgres_db <user> <pass> [db]` - Create PostgreSQL database
+- `create-postgres-db <user> <pass> [db]` - Create PostgreSQL database
 - `tunnelctl up|down|status <name>` - Manage named SSH tunnels
 
 See `zsh/.zsh/conf/` for full configuration.

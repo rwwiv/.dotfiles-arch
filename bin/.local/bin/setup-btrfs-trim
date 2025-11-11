@@ -1,0 +1,126 @@
+#!/bin/bash
+# setup-btrfs-trim.sh
+# Safely adds TRIM support to encrypted btrfs systems using limine
+#
+# What it does:
+# - Adds :allow-discards to the cryptdevice parameter (if not present)
+# - Adds discard=async to rootflags parameter (if not present)
+# - Runs limine-update to apply changes
+
+set -e
+
+# Check for gum
+if ! command -v gum &> /dev/null; then
+    echo "Error: gum is not installed"
+    echo "Install with: sudo pacman -S gum"
+    exit 1
+fi
+
+# Check if running as root
+if [[ $EUID -ne 0 ]]; then
+   gum style --foreground 196 --bold "Error: This script must be run as root"
+   exit 1
+fi
+
+CONFIG="/etc/default/limine"
+
+if [[ ! -f "$CONFIG" ]]; then
+    gum style --foreground 196 --bold "Error: $CONFIG not found"
+    exit 1
+fi
+
+gum style --border double --padding "1 2" --border-foreground 212 "TRIM Setup for Encrypted Btrfs"
+echo
+
+# Check current state
+if grep -q 'cryptdevice=.*:allow-discards' "$CONFIG" && grep -q 'rootflags=.*discard=async' "$CONFIG"; then
+    gum style --foreground 82 "✓ TRIM is already configured!"
+    echo
+    gum style --foreground 246 "Current configuration includes:"
+    echo "  • LUKS allow-discards: ✓"
+    echo "  • Btrfs discard=async: ✓"
+    exit 0
+fi
+
+# Show what will be done
+gum style --foreground 220 --bold "This script will:"
+echo "  1. Add :allow-discards to cryptdevice parameter (LUKS passthrough)"
+echo "  2. Add discard=async to rootflags (btrfs continuous TRIM)"
+echo "  3. Run limine-update to generate new boot config"
+echo
+
+# Show current config
+gum style --foreground 212 --bold "Current kernel command line:"
+grep "^KERNEL_CMDLINE\[default\]" "$CONFIG" | gum format | gum style --foreground 246
+
+echo
+
+if ! gum confirm "Proceed with TRIM configuration?"; then
+    gum style --foreground 246 "Cancelled."
+    exit 0
+fi
+
+echo
+
+# Create backup
+BACKUP="${CONFIG}.backup-$(date +%Y%m%d-%H%M%S)"
+gum spin --spinner dot --title "Creating backup..." -- cp "$CONFIG" "$BACKUP"
+gum style --foreground 82 "✓ Backup created: $BACKUP"
+
+# Apply changes
+gum spin --spinner dot --title "Modifying configuration..." -- bash -c "
+    # Add :allow-discards to cryptdevice parameter
+    sed -i '/^KERNEL_CMDLINE\[default\]/s/\(cryptdevice=[^:]*:[^:]*\)\([^:]*\)\( \|\"\)/\1:allow-discards\3/g' '$CONFIG'
+
+    # Add discard=async to rootflags
+    sed -i '/^KERNEL_CMDLINE\[default\]/s/\(rootflags=[^ \"]*\)/\1,discard=async/g' '$CONFIG'
+"
+
+gum style --foreground 82 "✓ Configuration updated"
+echo
+
+# Show new config
+gum style --foreground 212 --bold "New kernel command line:"
+grep "^KERNEL_CMDLINE\[default\]" "$CONFIG" | gum format | gum style --foreground 246
+
+echo
+
+if ! gum confirm "Apply changes with limine-update?"; then
+    gum style --foreground 220 "Configuration saved but not applied."
+    gum style --foreground 246 "Run 'sudo limine-update' manually to apply."
+    gum style --foreground 246 "Backup: $BACKUP"
+    exit 0
+fi
+
+echo
+
+# Run limine-update
+if ! gum spin --spinner dot --title "Running limine-update..." -- limine-update; then
+    gum style --foreground 196 --bold "Error: limine-update failed!"
+    gum spin --spinner dot --title "Restoring backup..." -- cp "$BACKUP" "$CONFIG"
+    gum style --foreground 196 "Configuration restored from backup."
+    exit 1
+fi
+
+gum style --foreground 82 "✓ Boot configuration updated"
+echo
+
+# Success message
+gum style \
+    --border double \
+    --padding "1 2" \
+    --border-foreground 82 \
+    --foreground 82 \
+    --bold \
+    "Setup Complete!"
+
+echo
+gum style --foreground 220 --bold "Next steps:"
+echo "  1. Reboot your system"
+echo "  2. After reboot, verify with:"
+echo
+gum style --foreground 246 "     sudo dmsetup table root --showkeys | grep allow_discards"
+gum style --foreground 246 "     mount | grep discard=async"
+echo
+gum style --foreground 246 "Backup saved: $BACKUP"
+gum style --foreground 246 "(Delete after verifying successful boot)"

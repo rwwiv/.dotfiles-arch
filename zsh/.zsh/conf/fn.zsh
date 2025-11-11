@@ -16,7 +16,7 @@ if command -v magick &>/dev/null; then
 fi
 
 if command -v psql &>/dev/null; then
-  create_postgres_db() {
+  create-postgres-db() {
     local user pass db
     user="$1"
     pass="$2"
