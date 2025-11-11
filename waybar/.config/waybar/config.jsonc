@@ -11,9 +11,10 @@
     "group/tray-expander",
     "bluetooth",
     "network",
-    "pulseaudio#microphone",
-    "pulseaudio#volume",
-    "battery#icon"
+    "wireplumber#microphone",
+    "wireplumber#volume",
+    "idle_inhibitor",
+    "battery"
   ],
   "hyprland/workspaces": {
     "on-click": "activate",
@@ -30,7 +31,6 @@
   		"8": "八",
   		"9": "九",
   	  "10": "〇"
-	    // "active":  "󱓻"
     },
     "persistent-workspaces": {
       "*": 10
@@ -54,12 +54,6 @@
     "signal": 7,
     "interval": 3600
   },
-
-  "cpu": {
-    "interval": 5,
-    "format": "󰍛",
-    "on-click": "xdg-terminal-exec btop"
-  },
   "clock": {
     "format": "{:L%I:%M %p}",
     "tooltip-format": "{:L%d %B %Y}",
@@ -70,7 +64,7 @@
     "format-icons": ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"],
     "format": "{icon}",
     "format-wifi": "{icon}",
-    "format-ethernet": "󰀂",
+    "format-ethernet": "󰈀",
     "format-disconnected": "󰤮",
     "tooltip-format-wifi": "{essid} ({frequency} GHz)\n⇣{bandwidthDownBytes}  ⇡{bandwidthUpBytes}",
     "tooltip-format-ethernet": "⇣{bandwidthDownBytes}  ⇡{bandwidthUpBytes}",
@@ -79,7 +73,7 @@
     "spacing": 1,
     "on-click": "omarchy-launch-wifi"
   },
-  "battery#icon": {
+  "battery": {
     "format": "{icon}",
     "format-discharging": "{icon}",
     "format-charging": "{icon}",
@@ -100,37 +94,32 @@
   },
   "bluetooth": {
     "format": "",
-    "format-disabled": "󰂲",
+    "format-off": "󰂲",
     "format-connected": "",
-    "tooltip-format": "Devices connected: {num_connections}\n{device_enumerate}",
-    "on-click": "blueberry"
+    "tooltip-format-off": "Bluetooth off",
+    "tooltip-format-on": "No devices connected",
+    "tooltip-format-connected": "Devices connected: {num_connections}\n{device_enumerate}",
+    "on-click": "xdg-terminal-exec --app-id=com.rwwiv.Bluetui -e launch-bluetui",
   },
-  "pulseaudio#volume": {
+  "wireplumber#volume": {
     "format": "{icon}",
     "format-muted": "",
-  	"tooltip": false,
+    "tooltip-format": "Volume: {volume}%",
     "format-icons": {
         "default": ["", "", ""]
     },
     "on-click": "xdg-terminal-exec --app-id=com.omarchy.Wiremix -e wiremix",
     "on-click-right": "pamixer -t",
-    "tooltip-format": "Playing at {volume}%",
     "scroll-step": 0
   },
-  "pulseaudio#microphone": {
+  "wireplumber#microphone": {
     "format": "{format_source}",
     "format-muted": "{format_source}",
-  	"tooltip": false,
+  	"tooltip-format": "Mic volume: {source_volume}%",
     "format-source": "",
     "format-source-muted": "",
     "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle",
     "on-click": "xdg-terminal-exec --app-id=com.omarchy.Wiremix -e wiremix -v recording"
-  },
-  "systemd-failed-units": {
-  	"hide-on-ok": false, // Do not hide if there is zero failed units.
-  	"format": "✗ {nr_failed}",
-  	"format-ok": "✓",
-  	"system": true // Monitor failed systemwide units.
   },
   "group/tray-expander": {
     "orientation": "inherit",
@@ -142,7 +131,6 @@
     "modules": ["custom/expand-icon", "tray"]
   },
   "custom/expand-icon": {
-    // "format": "",
     "format": "...",
     "tooltip": false
   },
@@ -155,5 +143,12 @@
   "tray": {
     "icon-size": 12,
     "spacing": 17
+  },
+  "idle_inhibitor": {
+    "format": "{icon}",
+    "format-icons": {
+        "activated": "",
+        "deactivated": ""
+    }
   }
 }

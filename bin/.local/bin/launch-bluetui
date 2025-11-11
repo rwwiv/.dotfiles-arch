@@ -1,0 +1,8 @@
+#!/bin/bash
+
+if [[ "$(rfkill list bluetooth | grep -i "soft blocked" | cut -d ' ' -f3)" == "yes" ]]; then
+   echo "Bluetooth soft blocked, unblocking..."
+   rfkill unblock bluetooth
+fi
+
+bluetui "$@"

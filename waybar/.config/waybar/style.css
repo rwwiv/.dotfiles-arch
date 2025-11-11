@@ -6,58 +6,60 @@
   font-family: "Hack Nerd Font";
 }
 
-window {
+window#waybar {
   background-color: @background;
 }
 
-
 .modules-left {
-  font-size: 15px;
-  margin-left: 2px;
+  background-color: @background;
+  font-size: 16px;
 }
 
 .modules-center {
-  font-size: 15px;
+  background-color: @background;
+  color: @foreground;
+  font-size: 16px;
+  padding: 0 8px;
 }
 
 .modules-right {
+  background-color: @background;
+  color: @foreground;
   font-size: 16px;
-  margin-right: 6px;
 }
 
 #workspaces button {
-  all: initial;
   color: @foreground;
   padding: 0 6px;
   margin: 0 1.5px;
   min-width: 9px;
 }
 
-
 #workspaces button.active {
   font-weight: bold;
   color: #f5a97f;
 }
- 
 
 #workspaces button.empty {
   opacity: 0.5;
 }
 
 #cpu,
-#pulseaudio,
-#pulseaudio.microphone,
-#custom-omarchy,
+#battery,
+#network,
+#wireplumber,
+#wireplumber.microphone,
 #custom-screenrecording-indicator,
-#custom-update {
-  color: @foreground;
-  min-width: 12px;
+#custom-update,
+#idle_inhibitor {
+  min-width: 16px;
   margin: 0 12px;
 }
 
-#battery {
+#custom-omarchy {
   color: @foreground;
   min-width: 12px;
+  margin: 0 8px;
 }
 
 #battery.warning {
@@ -68,61 +70,48 @@ window {
   color: #94040d;
 }
 
-#battery.icon {
-  margin: 0 12px;
+#wireplumber.microphone {
+  margin-right: 8px;
 }
 
-#pulseaudio.microphone.source-muted {
-  margin-right: 16px;
+#wireplumber.microphone.source-muted {
+  margin-right: 12px;
   margin-left: 8.5px;
 }
 
 #tray {
-  color: @foreground;
-  margin-right: 10px;
+  margin-right: 12px;
 }
 
 #bluetooth {
-  color: @foreground;
-  margin: 0 6px 0 12px;
+  margin: 0 8px;
 }
 
-#network {
-  color: @foreground;
-  margin: 0 18px;
+#idle_inhibitor {
+  margin: 0 14px;
 }
 
 #custom-expand-icon {
-  color: @foreground;
   font-size: 12px;
   font-weight: bold;
-  margin-bottom: 6px;
-  margin-right: 10px;
+  margin: 0 10px 6px 12px;
 }
 
 tooltip {
+  background-color: @background;
   color: @foreground;
   padding: 2px;
 }
 
 #custom-update {
-  color: @foreground;
   font-size: 10px;
 }
 
-#clock {
-  color: @foreground;
-  margin-left: 8.75px;
-}
-
 .hidden {
-  color: @foreground;
   opacity: 0;
 }
 
-
 #custom-screenrecording-indicator {
-  color: @foreground;
   min-width: 12px;
   margin-left: 8.75px;
   font-size: 10px;
