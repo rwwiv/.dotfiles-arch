@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env zsh
 # setup-btrfs-trim.sh
 # Safely adds TRIM support to encrypted btrfs systems using limine
 #
@@ -68,7 +68,7 @@ gum spin --spinner dot --title "Creating backup..." -- cp "$CONFIG" "$BACKUP"
 gum style --foreground 82 "✓ Backup created: $BACKUP"
 
 # Apply changes
-gum spin --spinner dot --title "Modifying configuration..." -- bash -c "
+gum spin --spinner dot --title "Modifying configuration..." -- zsh -c "
     # Add :allow-discards to cryptdevice parameter
     sed -i '/^KERNEL_CMDLINE\[default\]/s/\(cryptdevice=[^:]*:[^:]*\)\([^:]*\)\( \|\"\)/\1:allow-discards\3/g' '$CONFIG'
 

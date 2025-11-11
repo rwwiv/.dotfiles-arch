@@ -1,0 +1,256 @@
+#!/usr/bin/env zsh
+
+# --- Generic SSH tunnel helpers ----------------------------------------------
+# Usage:
+#   tunnelctl up <name> [<host> <local_port> <remote_port>]
+#   tunnelctl down <name>
+#   tunnelctl status [<name>]
+#
+# Example:
+#   tunnelctl up postgres              # interactive (gum)
+#   tunnelctl up postgres 192.168.9.90 54321 5432
+#   tunnelctl status postgres
+#   tunnelctl down postgres
+
+: ${SSH_TUNNEL_PIDDIR:="$HOME/.cache/ssh-tunnels"}
+
+_tunnel_pidfile() {
+  local name=$1
+  mkdir -p "$SSH_TUNNEL_PIDDIR"
+  echo "$SSH_TUNNEL_PIDDIR/$name.pid"
+}
+
+_tunnel_metafile() {
+  local name=$1
+  mkdir -p "$SSH_TUNNEL_PIDDIR"
+  echo "$SSH_TUNNEL_PIDDIR/$name.meta"
+}
+
+_tunnel_up() {
+  if (( $# != 1 && $# != 4 )); then
+    echo "Usage: tunnelctl up <name> [<host> <local_port> <remote_port>]" >&2
+    return 1
+  fi
+
+  local name=$1
+  local host local_port remote_port
+
+  # If args provided explicitly, just use them
+  if (( $# == 4 )); then
+    host=$2
+    local_port=$3
+    remote_port=$4
+  else
+    # Interactive mode: require gum
+    if ! command -v gum >/dev/null 2>&1; then
+      echo "tunnelctl: gum is required for interactive 'up'" >&2
+      return 1
+    fi
+
+    local metafile=$(_tunnel_metafile "$name")
+    local default_host="" default_local_port="" default_remote_port=""
+
+    # If we have previous metadata for this tunnel, use it as defaults
+    if [[ -f "$metafile" ]]; then
+      local m_host m_local_port m_remote_port
+      # shellcheck disable=SC1090
+      source "$metafile"
+      [[ -n "$host" ]] && default_host="$host"
+      [[ -n "$local_port" ]] && default_local_port="$local_port"
+      [[ -n "$remote_port" ]] && default_remote_port="$remote_port"
+    fi
+
+    host=$(gum input --prompt "Host: " --value "$default_host") || return $?
+    local_port=$(gum input --prompt "Local port: " --value "$default_local_port") || return $?
+    remote_port=$(gum input --prompt "Remote port: " --value "$default_remote_port") || return $?
+
+    # Fallback to defaults if user just hits enter
+    [[ -z "$local_port" ]] && local_port="$default_local_port"
+    [[ -z "$remote_port" ]] && remote_port="$default_remote_port"
+  fi
+
+  local pidfile=$(_tunnel_pidfile "$name")
+  local metafile=$(_tunnel_metafile "$name")
+
+  # If already running, don't start another
+  if [[ -f "$pidfile" ]]; then
+    local pid
+    pid="$(<"$pidfile")"
+
+    # Try to read existing metadata to show nicer info
+    local m_host="" m_local_port="" m_remote_port=""
+    if [[ -f "$metafile" ]]; then
+      # shellcheck disable=SC1090
+      source "$metafile"
+      m_host="${host:-$m_host}"
+      m_local_port="${local_port:-$m_local_port}"
+      m_remote_port="${remote_port:-$m_remote_port}"
+    fi
+
+    if [[ -n "$pid" && -d "/proc/$pid" ]]; then
+      if [[ -n "$m_host" ]]; then
+        echo "tunnel '$name' already running (pid $pid, localhost:${m_local_port:-$local_port} → ${m_host:-$host}:${m_remote_port:-$remote_port})"
+      else
+        echo "tunnel '$name' already running (pid $pid)"
+      fi
+      return 0
+    else
+      echo "tunnel '$name': stale pidfile (pid $pid), cleaning up"
+      rm -f -- "$pidfile"
+      rm -f -- "$metafile"
+    fi
+  fi
+
+  echo "tunnel '$name': starting (localhost:$local_port → $host:$remote_port)"
+
+  # Suppress job-control noise just inside this function
+  setopt localoptions nomonitor
+
+  # Start SSH tunnel in the background
+  ssh -N \
+      -L "${local_port}:localhost:${remote_port}" \
+      "$host" \
+      >/dev/null 2>&1 &
+
+  local pid=$!
+  if [[ -z "$pid" || ! -d "/proc/$pid" ]]; then
+    echo "tunnel '$name': failed to start (no pid)"
+    return 1
+  fi
+
+  # Save PID + metadata
+  echo "$pid" > "$pidfile"
+  {
+    echo "host=$host"
+    echo "local_port=$local_port"
+    echo "remote_port=$remote_port"
+  } > "$metafile"
+
+  echo "tunnel '$name': started (pid $pid, localhost:$local_port → $host:$remote_port)"
+}
+
+_tunnel_down() {
+  if (( $# != 1 )); then
+    echo "Usage: tunnelctl down <name>" >&2
+    return 1
+  fi
+
+  local name=$1
+  local pidfile=$(_tunnel_pidfile "$name")
+  local metafile=$(_tunnel_metafile "$name")
+
+  if [[ ! -f "$pidfile" ]]; then
+    echo "tunnel '$name': no pidfile, nothing to stop"
+    return 1
+  fi
+
+  # prevent zsh from printing "[N] + terminated …"
+  setopt localoptions nomonitor
+
+  local pid
+  pid="$(<"$pidfile")"
+  if [[ -z "$pid" || ! -d "/proc/$pid" ]]; then
+    echo "tunnel '$name': stale pidfile (pid $pid), cleaning up"
+    rm -f -- "$pidfile"
+    rm -f -- "$metafile"
+    return 1
+  fi
+
+  echo "tunnel '$name': stopping (pid $pid)"
+  kill "$pid" 2>/dev/null || echo "tunnel '$name': kill failed (maybe already dead?)"
+  rm -f -- "$pidfile"
+  rm -f -- "$metafile"
+}
+
+_tunnel_status() {
+  mkdir -p "$SSH_TUNNEL_PIDDIR"
+
+  # Single tunnel status
+  if (( $# == 1 )); then
+    local name=$1
+    local pidfile=$(_tunnel_pidfile "$name")
+    local metafile=$(_tunnel_metafile "$name")
+
+    if [[ ! -f "$pidfile" ]]; then
+      echo "tunnel '$name': not running (no pidfile)"
+      return 1
+    fi
+
+    local pid
+    pid="$(<"$pidfile")"
+
+    local host="" local_port="" remote_port=""
+    if [[ -f "$metafile" ]]; then
+      # shellcheck disable=SC1090
+      source "$metafile"
+    fi
+
+    if [[ -n "$pid" && -d "/proc/$pid" ]]; then
+      if [[ -n "$host" ]]; then
+        echo "tunnel '$name': running (pid $pid, localhost:$local_port → $host:$remote_port)"
+      else
+        echo "tunnel '$name': running (pid $pid)"
+      fi
+      return 0
+    else
+      echo "tunnel '$name': stale pidfile (pid $pid)"
+      return 1
+    fi
+  fi
+
+  # List all tunnels
+  echo "Known tunnels in $SSH_TUNNEL_PIDDIR:"
+  for f in "$SSH_TUNNEL_PIDDIR"/*.pid(N); do
+    local name pid host="" local_port="" remote_port="" metafile
+    name="${f:t:r}"
+    pid="$(<"$f")"
+    metafile=$(_tunnel_metafile "$name")
+    if [[ -f "$metafile" ]]; then
+      # shellcheck disable=SC1090
+      source "$metafile"
+    fi
+
+    if [[ -n "$pid" && -d "/proc/$pid" ]]; then
+      if [[ -n "$host" ]]; then
+        echo "  $name: running (pid $pid, localhost:$local_port → $host:$remote_port)"
+      else
+        echo "  $name: running (pid $pid)"
+      fi
+    else
+      echo "  $name: stale (pid $pid)"
+    fi
+  done
+}
+
+# Main command handler
+if (( $# < 1 )); then
+  echo "Usage: tunnelctl <up|down|status> [args...]" >&2
+  exit 1
+fi
+
+cmd=$1
+shift
+
+case "$cmd" in
+  up)
+    _tunnel_up "$@"
+    ;;
+  down)
+    _tunnel_down "$@"
+    ;;
+  status)
+    _tunnel_status "$@"
+    ;;
+  help|-h|--help)
+    cat <<EOF
+Usage:
+  tunnelctl up <name> [<host> <local_port> <remote_port>]
+  tunnelctl down <name>
+  tunnelctl status [<name>]
+EOF
+    ;;
+  *)
+    echo "tunnelctl: unknown command '$cmd' (expected up|down|status)" >&2
+    exit 1
+    ;;
+esac

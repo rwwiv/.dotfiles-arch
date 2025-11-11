@@ -15,22 +15,7 @@ if command -v magick &>/dev/null; then
   }
 fi
 
-if command -v psql &>/dev/null; then
-  create-postgres-db() {
-    local user pass db
-    user="$1"
-    pass="$2"
-    db="$3"
-
-    [ -z "$user" ] && echo "Missing user" && return 1
-    [ -z "$pass" ] && echo "Missing password" && return 1
-    [ -z "$db" ] && db="$user"
-
-    psql -c "create role ${user} with createdb encrypted password '${pass}' login;"
-    psql -c "alter user ${user} superuser;"
-    psql -c "create database ${db} with owner ${user};"
-  }
-fi
+# create-postgres-db moved to bin/.local/bin/create-postgres-db
 
 timeshell() {
   local shell

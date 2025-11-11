@@ -1,0 +1,25 @@
+#!/usr/bin/env zsh
+
+# Create PostgreSQL database with user and password
+# Usage: create-postgres-db <user> <pass> [db]
+#
+# Example:
+#   create-postgres-db myuser mypass
+#   create-postgres-db myuser mypass mydb
+
+if ! command -v psql &>/dev/null; then
+  echo "Error: psql command not found" >&2
+  exit 1
+fi
+
+user="$1"
+pass="$2"
+db="$3"
+
+[ -z "$user" ] && echo "Missing user" && exit 1
+[ -z "$pass" ] && echo "Missing password" && exit 1
+[ -z "$db" ] && db="$user"
+
+psql -c "create role ${user} with createdb encrypted password '${pass}' login;"
+psql -c "alter user ${user} superuser;"
+psql -c "create database ${db} with owner ${user};"

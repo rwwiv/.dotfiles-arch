@@ -7,6 +7,16 @@ set -e
 # Get the script directory (dotfiles root)
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Check if zsh is installed (prerequisite for dotfiles)
+if ! command -v zsh &> /dev/null; then
+    echo "Error: zsh is required but not installed"
+    echo
+    echo "Install zsh first:"
+    echo "  sudo pacman -S zsh"
+    echo
+    exit 1
+fi
+
 # Check if yay is installed (prerequisite)
 if ! command -v yay &> /dev/null; then
     echo "Error: yay (AUR helper) is required but not installed"

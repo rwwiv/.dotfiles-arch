@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env zsh
 
 set -e
 
@@ -9,7 +9,7 @@ PG_VERSION=$(sudo cat /var/lib/postgres/data/PG_VERSION)
 # Get the installed postgres version
 INSTALLED_VERSION=$(/usr/bin/postgres --version | grep -oP '\d+' | head -1)
 
-if [ "$PG_VERSION" == "$INSTALLED_VERSION" ]; then
+if [[ "$PG_VERSION" == "$INSTALLED_VERSION" ]]; then
     echo "Postgres data directory is already at version $PG_VERSION, no upgrade needed"
     exit 0
 fi

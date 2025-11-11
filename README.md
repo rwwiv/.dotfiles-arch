@@ -29,15 +29,27 @@ This repository contains my dotfiles managed with [GNU Stow](https://www.gnu.org
 
 ## Dependencies
 
+### Prerequisites
+
+- **zsh** - Required for shell configuration and custom scripts. Install before running the installer:
+  ```bash
+  sudo pacman -S zsh
+  ```
+
 Package lists are provided in `pkglist.txt` (core) and `pkglist-optional.txt` (optional). The [interactive installer](#quick-start-recommended) will handle installing these automatically.
 
 ## Installation
 
 ### Quick Start (Recommended)
 
-1. Install [yay](https://github.com/Jguer/yay) (AUR helper) - see their [installation instructions](https://github.com/Jguer/yay#installation)
+1. Install zsh (if not already installed):
+   ```bash
+   sudo pacman -S zsh
+   ```
 
-2. Clone this repository:
+2. Install [yay](https://github.com/Jguer/yay) (AUR helper) - see their [installation instructions](https://github.com/Jguer/yay#installation)
+
+3. Clone this repository:
    ```bash
    git clone https://github.com/rwwiv/.dotfiles-arch.git ~/.dotfiles
    cd ~/.dotfiles
@@ -45,7 +57,7 @@ Package lists are provided in `pkglist.txt` (core) and `pkglist-optional.txt` (o
 
    **Note:** This repository uses Git LFS for images (wallpapers and screenshots).
 
-3. Run the interactive installer:
+4. Run the interactive installer:
    ```bash
    ./install
    ```
@@ -59,9 +71,14 @@ Package lists are provided in `pkglist.txt` (core) and `pkglist-optional.txt` (o
 
 If you prefer manual installation:
 
-1. Install [yay](https://github.com/Jguer/yay) (AUR helper) - see their [installation instructions](https://github.com/Jguer/yay#installation)
+1. Install zsh (if not already installed):
+   ```bash
+   sudo pacman -S zsh
+   ```
 
-2. Install packages manually:
+2. Install [yay](https://github.com/Jguer/yay) (AUR helper) - see their [installation instructions](https://github.com/Jguer/yay#installation)
+
+3. Install packages manually:
    ```bash
    # Core packages (required)
    yay -S --needed - < pkglist.txt
@@ -70,7 +87,7 @@ If you prefer manual installation:
    yay -S --needed - < pkglist-optional.txt
    ```
 
-3. Stow the packages you want:
+4. Stow the packages you want:
    ```bash
    # Stow individual packages
    stow zsh
