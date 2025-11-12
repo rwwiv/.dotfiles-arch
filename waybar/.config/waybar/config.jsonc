@@ -15,6 +15,7 @@
     "wireplumber#volume",
     "battery",
     "idle_inhibitor",
+    "mpris",
     "clock",
     "custom/update",
     "custom/screenrecording-indicator"
@@ -87,6 +88,16 @@
     "tooltip-format-connected": "Devices connected: {num_connections}\n{device_enumerate}",
     "tooltip-format-on": "No devices connected",
     "tooltip-off": false
+  },
+  "mpris": {
+    "format": "{status_icon}",
+    "tooltip-format": "{dynamic}",
+    "dynamic-order": ["title", "artist", "album"],
+    "status-icons": {
+      "playing": "󰏤",
+      "paused": "󰐊",
+      "stopped": "󰓛"
+    },
   },
   "network": {
     "format": "{ifname}",

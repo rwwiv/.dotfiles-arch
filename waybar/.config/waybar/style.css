@@ -80,10 +80,11 @@ window#waybar {
 #temperature.cpu,
 #battery,
 #bluetooth,
+#mpris,
 #network,
 #wireplumber,
 #idle_inhibitor {
-  background-color: shade(@background, 1.5);
+  background-color: shade(@background, 1.4);
   margin: 6px 4px;
   min-width: 14px;
   padding: 0 6px;
@@ -92,11 +93,12 @@ window#waybar {
 #temperature.cpu:hover,
 #battery:hover,
 #bluetooth:hover,
+#mpris:hover,
 #idle_inhibitor:hover,
 #network:hover,
 #wireplumber:hover {
   color: shade(@foreground, 1.05);
-  background-color: shade(@background, 1.3);
+  background-color: shade(@background, 1.6);
 }
 
 /* Battery specific */
@@ -156,7 +158,7 @@ window#waybar {
    Custom Modules
    ============================================ */
 #custom-omarchy {
-  background-color: shade(@background, 1.5);
+  background-color: shade(@background, 1.4);
   color: @foreground;
   font-size: 18px;
   margin-left: 0;
@@ -167,7 +169,7 @@ window#waybar {
 
 #custom-omarchy:hover {
   color: shade(@foreground, 1.05);
-  background-color: shade(@background, 1.3);
+  background-color: shade(@background, 1.6);
 }
 
 #custom-expand-icon {
