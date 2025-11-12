@@ -77,6 +77,7 @@ window#waybar {
 /* ============================================
    System Modules
    ============================================ */
+#temperature.cpu,
 #battery,
 #bluetooth,
 #network,
@@ -88,6 +89,7 @@ window#waybar {
   padding: 0 6px;
 }
 
+#temperature.cpu:hover,
 #battery:hover,
 #bluetooth:hover,
 #idle_inhibitor:hover,
@@ -98,20 +100,20 @@ window#waybar {
 }
 
 /* Battery specific */
-#battery.discharging..critical {
+#battery.discharging.critical {
   background-color: #9b1010;
 }
 
-#battery.discharging..critical:hover {
+#battery.discharging.critical:hover {
   color: shade(@foreground, 1.05);
   background-color: shade(#9b1010, 0.9);
 }
 
-#battery.discharging..warning {
+#battery.discharging.warning {
   background-color: #b47621;
 }
 
-#battery.discharging..warning:hover {
+#battery.discharging.warning:hover {
   color: shade(@foreground, 1.05);
   background-color: shade(#b47621, 0.9);
 }

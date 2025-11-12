@@ -8,6 +8,7 @@
   "modules-left": ["custom/omarchy", "hyprland/workspaces"],
   "modules-right": [
     "group/tray-expander",
+    "temperature#cpu",
     "bluetooth",
     "network",
     "wireplumber#microphone",
@@ -66,8 +67,10 @@
   // System Modules
   // ============================================
   "battery": {
+    "format": "bat:{capacity}%",
     "format-charging": "bat:{capacity}% 󱐋",
     "format-discharging": "bat:{capacity}%",
+    "format-discharging-critical": "bat:{capacity}% 󰀦 ",
     "format-plugged": "AC",
     "interval": 5,
     "on-click": "omarchy-menu power",
@@ -96,6 +99,12 @@
     "tooltip-format-disconnected": "Disconnected",
     "tooltip-format-ethernet": "⇣{bandwidthDownBytes}  ⇡{bandwidthUpBytes}",
     "tooltip-format-wifi": "{essid} ({frequency} GHz)\n⇣{bandwidthDownBytes}  ⇡{bandwidthUpBytes}"
+  },
+  "temperature#cpu": {
+    "format": "cpu:{temperatureC}°C",
+    "thermal-zone": 6,
+    "tooltip": false,
+    "on-click": "xdg-terminal-exec --app-id=com.rwwiv.BTOP -e btop"
   },
   "wireplumber#microphone": {
     "format": "mic:{source_volume}%",
