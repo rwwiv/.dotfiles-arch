@@ -4,6 +4,7 @@ HISTSIZE=10000
 SAVEHIST=${HISTSIZE}
 setopt appendhistory
 setopt HIST_IGNORE_DUPS
+ulimit -S -n 8000
 
 bindkey -e
 if [[ -n "$SSH_CONNECTION" ]]; then
