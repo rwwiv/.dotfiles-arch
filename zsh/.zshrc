@@ -3,6 +3,8 @@ HISTFILE=$HOME/.zsh_history
 HISTSIZE=10000
 SAVEHIST=${HISTSIZE}
 setopt appendhistory
+setopt HIST_IGNORE_DUPS
+
 bindkey -e
 if [[ -n "$SSH_CONNECTION" ]]; then
     echo -e "\e[5 q"
