@@ -34,7 +34,7 @@ window#waybar {
 .modules-right {
   background-color: @background;
   color: @foreground;
-  font-size: 14px;
+  font-size: 12px;
   padding: 0 4px;
 }
 
@@ -42,9 +42,9 @@ window#waybar {
    Workspaces
    ============================================ */
 #workspaces {
-  /* background-color: shade(@background, 1.4); */
   font-size: 15px;
 }
+
 
 #workspaces button:hover {
   background: none;
@@ -122,7 +122,7 @@ window#waybar {
 
 /* Idle inhibitor specific */
 #idle_inhibitor {
-  padding-right: 15px;
+  padding-right: 13px;
 }
 
 
@@ -131,8 +131,8 @@ window#waybar {
    ============================================ */
 #clock {
   color: @foreground;
-  font-size: 15px;
-  margin: 0 8px;
+  font-size: 14px;
+  margin: 2px 8px 0 8px;
 }
 
 #clock:hover {
@@ -160,10 +160,10 @@ window#waybar {
 #custom-omarchy {
   background-color: shade(@background, 1.4);
   color: @foreground;
-  font-size: 18px;
+  font-size: 16px;
   margin-left: 0;
   margin-right: 4px;
-  padding: 0 8px;
+  padding: 0 7px;
   min-width: 12px;
 }
 

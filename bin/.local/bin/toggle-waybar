@@ -1,9 +1,0 @@
-#!/bin/bash
-
-if pgrep -x waybar >/dev/null; then
-	pkill -x waybar
-	hyprctl keyword general:gaps_out 15
-else
-	hyprctl keyword general:gaps_out "9 15 15 15"
-	uwsm-app -- waybar >/dev/null 2>&1 &
-fi
