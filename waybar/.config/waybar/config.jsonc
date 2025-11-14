@@ -118,8 +118,8 @@
     "on-click": "xdg-terminal-exec --app-id=com.rwwiv.BTOP -e btop"
   },
   "wireplumber#microphone": {
-    "format": "mic:{source_volume}%",
-    "format-muted": "mic:muted",
+    "format": "mic:on",
+    "format-muted": "mic:off",
     "node-type": "Audio/Source",
     "on-click": "xdg-terminal-exec --app-id=com.omarchy.Wiremix -e wiremix -v recording",
     "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle",

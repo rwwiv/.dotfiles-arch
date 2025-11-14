@@ -101,6 +101,11 @@ window#waybar {
   background-color: shade(@background, 1.6);
 }
 
+/* Mic specific */
+#wireplumber.microphone.muted {
+  background-color: #b47621;
+}
+
 /* Battery specific */
 #battery.discharging.critical {
   background-color: #9b1010;
