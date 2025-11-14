@@ -15,3 +15,6 @@
 *.local
 !.local/
 !**/.local/
+
+# local hypr config
+hypr/**/local.conf

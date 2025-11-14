@@ -34,7 +34,7 @@ window#waybar {
 .modules-right {
   background-color: @background;
   color: @foreground;
-  font-size: 12px;
+  font-size: 13px;
   padding: 0 4px;
 }
 
@@ -137,7 +137,7 @@ window#waybar {
 #clock {
   color: @foreground;
   font-size: 14px;
-  margin: 2px 8px 0 8px;
+  margin: 2px 6px 0 6px;
 }
 
 #clock:hover {
