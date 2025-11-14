@@ -1,0 +1,85 @@
+#!/usr/bin/zsh
+
+# Parse argument (+int or -int)
+if [[ -z "$1" || ! "$1" =~ ^[+-][0-9]+$ ]]; then
+    echo "Usage: $(basename "$0") <+int|-int>"
+    echo "Example: $(basename "$0") +10 or $(basename "$0") -5"
+    exit 1
+fi
+
+adjustment=$1
+
+# Get hyprctl monitors JSON output and cache it
+monitors_json=$(hyprctl monitors -j)
+
+# Extract focused monitor's model and name
+focused_model=$(echo "$monitors_json" | jq -r '.[] | select(.focused == true).model')
+focused_name=$(echo "$monitors_json" | jq -r '.[] | select(.focused == true).name')
+
+if [[ -z "$focused_model" ]]; then
+    echo "Error: Could not determine focused monitor"
+    exit 1
+fi
+
+# Get ddcutil-client list of external displays
+ddcutil_list=$(ddcutil-client list)
+
+# Parse the list to find matching product_name
+# Extract product_name values and their display numbers
+display_num=""
+while IFS= read -r line; do
+    if [[ "$line" =~ ^display:\ ([0-9]+) ]]; then
+        current_display="${match[1]}"
+    elif [[ "$line" =~ product_name:\ (.+)$ ]]; then
+        product_name="${match[1]}"
+        # Trim whitespace
+        product_name=$(echo "$product_name" | xargs)
+
+        if [[ "$product_name" == "$focused_model" ]]; then
+            display_num="$current_display"
+            break
+        fi
+    fi
+done <<< "$ddcutil_list"
+
+# Check if we found a matching external display
+if [[ -n "$display_num" ]]; then
+    # External monitor - use ddcutil-client
+
+    # Get current brightness and max value
+    vcp_output=$(ddcutil-client -d "$display_num" getvcp 0x10)
+    current=$(echo "$vcp_output" | awk '/vcp_current_value:/ {print $2}')
+    max=$(echo "$vcp_output" | awk '/vcp_max_value:/ {print $2}')
+
+    if [[ -z "$current" || -z "$max" ]]; then
+        echo "Error: Could not read current brightness"
+        exit 1
+    fi
+
+    # Calculate new brightness value
+    new_value=$((current + adjustment))
+
+    # Clamp to 0 and max
+    if (( new_value < 0 )); then
+        new_value=0
+    elif (( new_value > max )); then
+        new_value=$max
+    fi
+
+    # Set the new brightness value via ddcutil
+    ddcutil-client -d "$display_num" setvcp 0x10 "$new_value" &> /dev/null
+
+    # Calculate progress for custom OSD (0.0 to 1.0)
+    progress=$(awk "BEGIN {printf \"%.2f\", $new_value / $max}")
+    percentage=$((new_value * 100 / max))
+
+    # Show custom OSD without adjusting any monitor brightness
+    swayosd-client --custom-icon "display-brightness-symbolic" \
+                   --custom-progress "$progress" \
+                   --custom-progress-text "${percentage}%" \
+                   --monitor "$focused_name"
+
+else
+    # Internal monitor - let swayosd-client handle both OSD and brightness change
+    swayosd-client --brightness "$adjustment" --monitor "$focused_name"
+fi
