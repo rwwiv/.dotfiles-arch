@@ -1,0 +1,36 @@
+---
+# System Setup Playbook
+# Usage examples:
+#   ansible-playbook playbook.yml                    # Install packages and enable services
+#   ansible-playbook playbook.yml --tags core        # Install only core packages
+#   ansible-playbook playbook.yml --tags services    # Enable services only
+
+- name: System setup (packages and services)
+  hosts: localhost
+  gather_facts: true
+
+  roles:
+    - role: packages
+      tags:
+        - packages
+        - core
+        - optional
+
+    - role: services
+      tags:
+        - services
+        - systemd
+
+  post_tasks:
+    - name: Display completion message
+      ansible.builtin.debug:
+        msg: |
+          ================================
+          System setup complete!
+          ================================
+
+          Next steps:
+          - Stow your dotfiles: cd ~/.dotfiles && stow <package>
+          - Or use: make stow (stows everything)
+          - Enable git-lfs: git lfs install
+      tags: always

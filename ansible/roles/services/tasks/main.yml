@@ -1,0 +1,23 @@
+---
+# User systemd services tasks
+# Enables and starts user-level systemd services
+
+- name: Reload systemd user daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+    scope: user
+  tags:
+    - services
+    - systemd
+
+- name: Enable and start user services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+    scope: user
+  loop: "{{ user_services }}"
+  failed_when: false  # Don't fail if service doesn't exist or can't start
+  tags:
+    - services
+    - systemd

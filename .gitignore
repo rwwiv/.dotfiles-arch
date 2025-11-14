@@ -18,3 +18,9 @@
 
 # local hypr config
 hypr/**/local.conf
+
+# Ansible
+ansible/*.retry
+ansible/.ansible/
+ansible/collections/
+ansible/.vault_pass

@@ -1,0 +1,73 @@
+---
+# Package installation tasks
+# Handles both core and optional packages from pkglist files
+
+- name: Check if yay is installed
+  ansible.builtin.command: which yay
+  register: yay_check
+  changed_when: false
+  failed_when: false
+  tags:
+    - core
+    - optional
+
+- name: Display yay installation instructions if missing
+  ansible.builtin.fail:
+    msg: |
+      yay (AUR helper) is required but not installed.
+
+      Install yay first:
+        sudo pacman -S --needed git base-devel
+        git clone https://aur.archlinux.org/yay.git
+        cd yay
+        makepkg -si
+  when: yay_check.rc != 0
+  tags:
+    - core
+    - optional
+
+- name: Read core packages list
+  ansible.builtin.slurp:
+    src: "{{ core_packages_file }}"
+  register: core_packages_content
+  tags: core
+
+- name: Parse core packages
+  ansible.builtin.set_fact:
+    core_packages: "{{ (core_packages_content.content | b64decode).split('\n') | select('match', '^[^#].*') | select('string') | list }}"
+  tags: core
+
+- name: Install core packages
+  community.general.pacman:
+    name: "{{ core_packages }}"
+    state: present
+    executable: yay
+    extra_args: "--needed"
+  become: false
+  tags: core
+
+- name: Read optional packages list
+  ansible.builtin.slurp:
+    src: "{{ optional_packages_file }}"
+  register: optional_packages_content
+  tags: optional
+
+- name: Parse optional packages
+  ansible.builtin.set_fact:
+    optional_packages: "{{ (optional_packages_content.content | b64decode).split('\n') | select('match', '^[^#].*') | select('string') | list }}"
+  tags: optional
+
+- name: Install optional packages
+  community.general.pacman:
+    name: "{{ optional_packages }}"
+    state: present
+    executable: yay
+    extra_args: "--needed"
+  become: false
+  ignore_errors: true  # Some AUR packages might fail, don't stop the whole playbook
+  tags: optional
+
+- name: Install git-lfs
+  ansible.builtin.command: git lfs install
+  changed_when: false
+  tags: core

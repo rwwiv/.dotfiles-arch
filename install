@@ -152,6 +152,37 @@ if gum confirm "Stow system files? (requires root permissions)"; then
     echo
 fi
 
+# Setup Hyprland plugins
+echo
+if gum confirm "Setup Hyprland split-monitor-workspaces plugin?"; then
+    echo
+    gum style --foreground 212 "Setting up split-monitor-workspaces plugin..."
+    echo
+
+    # Add the plugin repository
+    if gum spin --spinner dot --title "Adding plugin repository..." -- hyprpm add https://github.com/Duckonaut/split-monitor-workspaces; then
+        gum style --foreground 82 "✓ Plugin repository added"
+    else
+        gum style --foreground 196 "✗ Failed to add plugin repository"
+    fi
+
+    # Enable the plugin
+    if gum spin --spinner dot --title "Enabling plugin..." -- hyprpm enable split-monitor-workspaces; then
+        gum style --foreground 82 "✓ Plugin enabled"
+    else
+        gum style --foreground 196 "✗ Failed to enable plugin"
+    fi
+
+    # Reload plugins
+    if gum spin --spinner dot --title "Reloading plugins..." -- hyprpm reload; then
+        gum style --foreground 82 "✓ Plugins reloaded"
+    else
+        gum style --foreground 196 "✗ Failed to reload plugins"
+    fi
+
+    echo
+fi
+
 # Configure default applications
 echo
 if gum confirm "Configure zathura as default PDF reader?"; then

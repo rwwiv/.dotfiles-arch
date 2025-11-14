@@ -8,3 +8,117 @@ zls = "latest"
 
 [settings]
 python.uv_venv_auto = true
+
+# Dotfiles management tasks
+# Philosophy: Ansible = System setup (packages + services), Stow = Configs
+
+[tasks.install]
+description = "Full installation (packages + services + stow + system)"
+depends = ["packages", "services", "stow", "hypr-plugins", "system"]
+run = "echo '\nInstallation complete!'"
+
+[tasks.install-no-root]
+description = "Install without system files"
+depends = ["packages", "services", "stow", "hypr-plugins"]
+run = "echo '\nInstallation complete (no system files)!'"
+
+# Package management
+[tasks.packages]
+description = "Install all packages (core + optional)"
+run = "ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/playbook.yml --tags packages"
+
+[tasks.core]
+description = "Install core packages only"
+run = "ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/playbook.yml --tags core"
+
+[tasks.optional]
+description = "Install optional packages only"
+run = "ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/playbook.yml --tags optional"
+
+# Dotfiles (Stow)
+[tasks.stow]
+description = "Stow all dotfiles"
+run = """
+echo "Stowing all dotfiles..."
+for dir in */; do
+  [[ "$dir" =~ ^(ansible/|.git/|.github/|system/|wallpapers/)$ ]] && continue
+  echo "  Stowing ${dir%/}..."
+  stow "${dir%/}" 2>/dev/null || true
+done
+"""
+
+[tasks.git]
+description = "Stow Git configuration"
+run = "stow git"
+
+[tasks.ssh]
+description = "Stow SSH configuration"
+run = "stow ssh"
+
+[tasks.hypr]
+description = "Stow Hyprland + Waybar"
+run = "stow hypr waybar"
+
+[tasks.waybar]
+description = "Stow Waybar only"
+run = "stow waybar"
+
+[tasks.hypr-plugins]
+description = "Setup Hyprland plugins (split-monitor-workspaces)"
+run = """
+echo "Setting up Hyprland plugins..."
+hyprpm add https://github.com/Duckonaut/split-monitor-workspaces
+hyprpm enable split-monitor-workspaces
+hyprpm reload
+echo "Hyprland plugins configured"
+"""
+
+[tasks.terminal]
+description = "Stow terminal environment"
+run = "stow ghostty starship fastfetch"
+
+[tasks.shell]
+description = "Stow Zsh shell"
+run = "stow zsh"
+
+[tasks.editor]
+description = "Stow editors"
+run = "stow helix zed"
+
+[tasks.dev]
+description = "Stow development tools"
+run = "stow git mise"
+
+# System
+[tasks.system]
+description = "Stow system files (requires sudo)"
+run = "sudo ./stow-system"
+
+[tasks.services]
+description = "Enable user systemd services"
+run = "ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/playbook.yml --tags services"
+
+# Utilities
+[tasks.check]
+description = "Dry run (show what would change)"
+run = "ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/playbook.yml --check"
+
+[tasks.diff]
+description = "Show diffs of changes"
+run = "ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook ansible/playbook.yml --diff --check"
+
+# Grouped tasks
+[tasks.desktop]
+description = "Stow all desktop environment configs"
+depends = ["hypr", "waybar", "hypr-plugins"]
+run = "echo 'Desktop environment configured'"
+
+[tasks.dotfiles]
+description = "Stow common dotfiles (git, ssh, zsh, terminal)"
+depends = ["git", "ssh", "shell", "terminal"]
+run = "echo 'Common dotfiles stowed'"
+
+# Collections
+[tasks.install-collections]
+description = "Install required Ansible collections"
+run = "ansible-galaxy collection install community.general"

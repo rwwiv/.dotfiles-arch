@@ -3,13 +3,46 @@ stow
 git
 git-lfs
 zsh
-networkd-dispatcher
+
+# Wayland/Hyprland ecosystem
 hyprland
+hyprlock
+hypridle
+uwsm
+
+# System bar & utilities
 waybar
+xdg-utils
+
+# Audio system
+wireplumber
+pamixer
+wiremix
+easyeffects
+
+# Brightness control
+brightnessctl
+ddcutil
+swayosd
+
+# Bluetooth
+bluez-utils
+bluetui
+
+# Terminal & shell
 ghostty
-helix
 starship
 fastfetch
+
+# Editors
+helix
+
+# Fonts
 ttf-hack-nerd
-easyeffects
+
+# Password manager
 1password
+
+# System utilities
+jq
+networkd-dispatcher

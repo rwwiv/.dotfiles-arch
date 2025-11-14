@@ -12,6 +12,7 @@ zoxide
 lazygit
 lazydocker
 gum
+btop
 
 # Python tooling
 uv
@@ -26,6 +27,16 @@ imagemagick
 # Document viewers
 zathura
 zathura-pdf-poppler
+
+# Applications
+nautilus
+signal-desktop
+obsidian
+typora
+chromium
+
+# VPN & networking
+tailscale
 
 # Command correction (AUR)
 thefuck
