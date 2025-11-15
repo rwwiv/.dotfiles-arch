@@ -18,6 +18,7 @@
 
 # local hypr config
 hypr/**/local.conf
+hypr/**/*.glsl
 
 # Ansible
 ansible/*.retry
