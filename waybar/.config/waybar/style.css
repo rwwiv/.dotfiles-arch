@@ -3,7 +3,8 @@
 /* ============================================
    Variables
    ============================================ */
-@define-color active #f5a97f;
+/* @define-color active #f5a97f; */
+@define-color active #E6C384;
 
 /* ============================================
    Global Styles
@@ -149,14 +150,25 @@ window#waybar {
    ============================================ */
 #window {
   color: @foreground;
-  margin: 2px 4px 0 4px;
+  margin: 0 4px;
 }
 
 /* ============================================
    Tray
    ============================================ */
+#tray-expand {
+  margin: 0 2px;
+}
+
+#custom-expand-icon {
+  font-size: 12px;
+  font-weight: bold;
+  margin: 0 4px 5px 4px;
+}
+
 #tray {
-  margin-right: 12px;
+  padding: 0 8px;
+  margin-top: 2px;
 }
 
 /* ============================================
@@ -177,11 +189,6 @@ window#waybar {
   background-color: shade(@background, 1.6);
 }
 
-#custom-expand-icon {
-  font-size: 12px;
-  font-weight: bold;
-  margin: 0 10px 6px 12px;
-}
 
 #custom-expand-icon:hover {
   color: shade(@foreground, 1.2);

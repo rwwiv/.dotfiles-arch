@@ -14,9 +14,9 @@ PATH="$PATH:$HOME/.local/bin"
 TIMEFMT=$'%J\n%U user\n%S system\n%P cpu\n%E total'
 
 # clone/source znap
-[[ -r $HOME/dev/znap/znap.zsh ]] ||
-    git clone --depth 1 -- https://github.com/marlonrichert/zsh-snap.git $HOME/dev/znap
-source $HOME/dev/znap/znap.zsh
+[[ -r $HOME/znap/znap/znap.zsh ]] ||
+    git clone --depth 1 -- https://github.com/marlonrichert/zsh-snap.git $HOME/znap/znap
+source $HOME/znap/znap/znap.zsh
 
 # starship prompt
 if command -v starship &>/dev/null; then
