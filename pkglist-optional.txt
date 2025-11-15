@@ -13,6 +13,7 @@ lazygit
 lazydocker
 gum
 btop
+atuin
 
 # Python tooling
 uv

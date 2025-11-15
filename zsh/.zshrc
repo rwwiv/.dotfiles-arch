@@ -29,9 +29,9 @@ if command -v thefuck &>/dev/null; then
   znap eval thefuck "thefuck --alias"
 fi
 
-if command -v fzf &>/dev/null; then
-  source <(fzf --zsh)
-fi
+# if command -v fzf &>/dev/null; then
+#   source <(fzf --zsh)
+# fi
 
 if command -v mise &>/dev/null; then
   znap eval mise "mise activate zsh"
@@ -43,6 +43,11 @@ fi
 
 if command -v uv &>/dev/null; then
   znap eval uv "uv generate-shell-completion zsh"
+fi
+
+if command -v atuin &>/dev/null; then
+  export ATUIN_NOBIND="true"
+  znap eval atuin "atuin init zsh --disable-up-arrow"
 fi
 
 [[ -r $HOME/.zsh/conf/rc.zsh ]] && source $HOME/.zsh/conf/rc.zsh
