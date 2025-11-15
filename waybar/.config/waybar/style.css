@@ -85,7 +85,7 @@ window#waybar {
 #network,
 #wireplumber,
 #idle_inhibitor {
-  background-color: shade(@background, 1.4);
+  background-color: shade(@background, 1.45);
   margin: 6px 4px;
   min-width: 14px;
   padding: 0 6px;
