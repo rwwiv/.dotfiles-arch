@@ -1,5 +1,9 @@
 #!/usr/bin/zsh
 
+SERVICE='com.ddcutil.DdcutilService'
+OBJECT='/com/ddcutil/DdcutilObject'
+INTERFACE='com.ddcutil.DdcutilInterface'
+
 # Parse argument (+int or -int)
 if [[ -z "$1" || ! "$1" =~ ^[+-][0-9]+$ ]]; then
     echo "Usage: $(basename "$0") <+int|-int>"
