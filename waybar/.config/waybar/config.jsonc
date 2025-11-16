@@ -71,7 +71,7 @@
     "format": "{:%I:%M%p}",
     "on-click-right": "omarchy-launch-floating-terminal-with-presentation omarchy-tz-select",
     "tooltip": true,
-    "tooltip-format": "{:%B %d, %Y}"
+    "tooltip-format": "{:%A, %B %d, %Y}"
   },
 
   // ============================================
@@ -84,7 +84,7 @@
     "format-discharging": "bat:{capacity}%",
     "format-discharging-critical": "bat:{capacity}% 󰀦 ",
     "format-plugged": "AC",
-    "interval": 5,
+    "interval": 10,
     "on-click": "omarchy-menu power",
     "states": {
       "critical": 10,
@@ -115,12 +115,12 @@
   "network": {
     "cursor": false,
     "format": "{ifname}",
+    "format-disabled": "net:殺",
     "format-disconnected": "net:沒",
     "format-ethernet": "{ifname}:{ipaddr}",
     "format-wifi": "{ifname}:{signalStrength}%",
-    "interval": 3,
+    "interval": 10,
     "on-click": "omarchy-launch-wifi",
-    "spacing": 1,
     "tooltip-format-disconnected": "Disconnected",
     "tooltip-format-ethernet": "⇣{bandwidthDownBytes}  ⇡{bandwidthUpBytes}",
     "tooltip-format-wifi": "{essid} ({frequency} GHz)\n⇣{bandwidthDownBytes}  ⇡{bandwidthUpBytes}"
@@ -128,7 +128,8 @@
   "temperature#cpu": {
     "cursor": false,
     "format": "cpu:{temperatureC}°C",
-    "thermal-zone": 6,
+    "thermal-zone": 5,
+    "interval": 5,
     "tooltip": false,
     "on-click": "xdg-terminal-exec --app-id=com.rwwiv.BTOP -e btop"
   },

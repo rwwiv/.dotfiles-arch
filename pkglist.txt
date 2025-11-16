@@ -19,6 +19,7 @@ wireplumber
 pamixer
 wiremix
 easyeffects
+lsp-plugins
 
 # Brightness control
 brightnessctl

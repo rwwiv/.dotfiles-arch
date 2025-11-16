@@ -84,3 +84,6 @@ map("n", "<", "<<", { desc = "Dedent line" })
 
 map({ "v" }, "<", "<gv", { desc = "Indent left" })
 map({ "v" }, ">", ">gv", { desc = "Indent right" })
+
+map({ "n", "v" }, "W", "b", { desc = "Backward WORD" })
+map({ "n", "v" }, "E", "ge", { desc = "Backward to end of word" })
