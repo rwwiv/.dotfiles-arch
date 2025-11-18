@@ -5,6 +5,7 @@
    ============================================ */
 /* @define-color active #f5a97f; */
 @define-color active #E6C384;
+@define-color button-background #2A2A37;
 
 /* ============================================
    Global Styles
@@ -19,24 +20,23 @@
 /* ============================================
    Container Styles
    ============================================ */
-window#waybar {
+#waybar {
   background-color: @background;
+  border: 2px solid shade(@background, 0.8);
 }
 
 .modules-left {
-  background-color: @background;
+  /* background-color: @background; */
   font-size: 14px;
 }
 
 .modules-center {
-  background-color: @background;
+  /* background-color: @background; */
 }
-
 .modules-right {
-  background-color: @background;
+  /* background-color: @background; */
   color: @foreground;
   font-size: 13px;
-  padding: 0 4px;
 }
 
 /* ============================================
@@ -44,6 +44,7 @@ window#waybar {
    ============================================ */
 #workspaces {
   font-size: 15px;
+  margin-bottom: 1px;
 }
 
 
@@ -84,11 +85,13 @@ window#waybar {
 #mpris,
 #network,
 #wireplumber,
-#idle_inhibitor {
-  background-color: shade(@background, 1.45);
-  margin: 6px 4px;
-  min-width: 14px;
-  padding: 0 6px;
+#idle_inhibitor,
+#custom-dnd {
+  background-color: @button-background;
+  border: 1px solid shade(@background, 0.8);
+  margin: 6px 3px;
+  min-width: 10px;
+  padding: 1px 6px;
 }
 
 #temperature.cpu:hover,
@@ -97,9 +100,14 @@ window#waybar {
 #mpris:hover,
 #idle_inhibitor:hover,
 #network:hover,
-#wireplumber:hover {
+#wireplumber:hover,
+#custom-dnd:hover {
   color: shade(@foreground, 1.05);
-  background-color: shade(@background, 1.6);
+  background-color: shade(@button-background, 1.1);
+}
+
+#wireplumber.volume {
+  padding-right: 10px;
 }
 
 /* Mic specific */
@@ -127,22 +135,58 @@ window#waybar {
 }
 
 /* Idle inhibitor specific */
-#idle_inhibitor {
-  padding-right: 13px;
+#idle_inhibitor.deactivated {
+  padding-right: 9px;
 }
 
+#idle_inhibitor.activated {
+  /* padding-left: 7px; */
+  padding-right: 9px;
+}
+
+/* Do not disturb specific */
+
+#custom-dnd.dnd-off {
+  padding-right: 8px;
+}
+
+#custom-dnd.dnd-on {
+  padding-left: 5px;
+  padding-right: 9px;
+}
+
+#mpris {
+  padding: 9px;
+}
+
+#network.wifi,
+#network.disconnected {
+  padding-right: 9px;
+}
+
+#temperature.cpu {
+  padding-right: 9px;
+}
 
 /* ============================================
    Clock
    ============================================ */
 #clock {
   color: @foreground;
-  font-size: 14px;
-  margin: 2px 6px 0 6px;
+  /* font-size: 14px; */
+  margin: 1px 10px 0 6px;
 }
 
 #clock:hover {
   color: shade(@foreground, 1.05);
+}
+
+/* ============================================
+   Separator
+   ============================================ */
+#custom-sep {
+  margin-left: 2px;
+  margin-bottom: 2px;
 }
 
 /* ============================================
@@ -176,6 +220,8 @@ window#waybar {
    ============================================ */
 #custom-omarchy {
   background-color: shade(@background, 1.4);
+  border: 2px solid shade(@background, 1.1);
+  border-right: 2px solid shade(@background, 0.8);
   color: @foreground;
   font-size: 16px;
   margin-left: 0;
@@ -196,8 +242,8 @@ window#waybar {
 
 #custom-screenrecording-indicator {
   font-size: 10px;
-  margin-left: 8.75px;
-  min-width: 12px;
+  margin-right: 10px;
+  min-width: 10px;
 }
 
 #custom-screenrecording-indicator.active {
@@ -206,6 +252,7 @@ window#waybar {
 
 #custom-update {
   font-size: 10px;
+  margin-right: 8px;
 }
 
 /* ============================================

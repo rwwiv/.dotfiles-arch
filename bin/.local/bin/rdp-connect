@@ -1,0 +1,242 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/rdp-connect/profiles"
+
+# Check for dependencies
+if ! command -v gum &> /dev/null; then
+    echo "Error: gum is not installed"
+    exit 1
+fi
+
+if ! command -v sdl-freerdp3 &> /dev/null; then
+    echo "Error: sdl-freerdp3 is not installed"
+    exit 1
+fi
+
+# Ensure config directory exists
+mkdir -p "$CONFIG_DIR"
+
+# Initialize variables with defaults
+SERVER=""
+USER=""
+PASSWORD=""
+PASS_ENTRY=""
+DYNAMIC_RES="true"
+CLIPBOARD="true"
+SOUND="false"
+MIC="false"
+NETWORK="auto"
+SHARE_NAME=""
+SHARE_PATH=""
+
+# Function to save current settings as profile
+save_profile() {
+    local name
+    name=$(gum input --placeholder "profile-name" --prompt "Save as: ")
+    [[ -z "$name" ]] && return
+
+    local file="$CONFIG_DIR/$name.conf"
+    cat > "$file" <<EOF
+SERVER="$SERVER"
+USER="$USER"
+PASS_ENTRY="$PASS_ENTRY"
+DYNAMIC_RES="$DYNAMIC_RES"
+CLIPBOARD="$CLIPBOARD"
+SOUND="$SOUND"
+MIC="$MIC"
+NETWORK="$NETWORK"
+SHARE_NAME="$SHARE_NAME"
+SHARE_PATH="$SHARE_PATH"
+EOF
+    gum style --foreground 212 "Saved to $file"
+}
+
+# Function to load a profile
+load_profile() {
+    local file="$1"
+    # shellcheck source=/dev/null
+    source "$file"
+}
+
+# Profile selection
+profiles=()
+PROFILE_LOADED=false
+
+while IFS= read -r -d '' file; do
+    profiles+=("$(basename "${file%.conf}")")
+done < <(find "$CONFIG_DIR" -maxdepth 1 -name "*.conf" -print0 2>/dev/null | sort -z)
+
+if [[ ${#profiles[@]} -gt 0 ]]; then
+    profiles+=("New connection")
+    selected=$(gum choose --header "Select profile:" "${profiles[@]}")
+    
+    if [[ "$selected" != "New connection" ]]; then
+        load_profile "$CONFIG_DIR/$selected.conf"
+        PROFILE_LOADED=true
+    fi
+fi
+
+# If profile loaded, offer quick connect or edit
+if [[ "$PROFILE_LOADED" == true ]]; then
+    echo ""
+    gum style --foreground 212 "Profile: $selected"
+    echo "Server: $SERVER"
+    echo "User: $USER"
+    [[ -n "$PASS_ENTRY" ]] && echo "Password: from pass ($PASS_ENTRY)"
+    echo ""
+    
+    PROFILE_ACTION=$(gum choose "Connect" "Edit settings" "Cancel")
+    
+    if [[ "$PROFILE_ACTION" == "Cancel" ]]; then
+        echo "Cancelled"
+        exit 0
+    fi
+    
+    # Fetch password for quick connect
+    if [[ "$PROFILE_ACTION" == "Connect" ]]; then
+        if [[ -n "$PASS_ENTRY" ]]; then
+            PASSWORD=$(pass show "$PASS_ENTRY" 2>/dev/null | head -n1) || {
+                gum style --foreground 196 "Failed to retrieve password from pass"
+                exit 1
+            }
+        fi
+        
+        # Build and execute command directly
+        CMD=(sdl-freerdp3 /v:"$SERVER" /u:"$USER" /f /scale:100)
+        [[ -n "$PASSWORD" ]] && CMD+=(/p:"$PASSWORD")
+        
+        [[ "$DYNAMIC_RES" == "true" ]] && CMD+=(/dynamic-resolution)
+        [[ "$CLIPBOARD" == "true" ]] && CMD+=(/clipboard)
+        [[ "$SOUND" == "true" ]] && CMD+=(/sound:sys:pulse)
+        [[ "$MIC" == "true" ]] && CMD+=(/microphone:sys:pulse)
+        [[ "$NETWORK" != "none" ]] && CMD+=(/network:"$NETWORK")
+        
+        if [[ -n "$SHARE_NAME" && -n "$SHARE_PATH" ]]; then
+            CMD+=(/drive:"$SHARE_NAME","$SHARE_PATH")
+        fi
+        
+        exec "${CMD[@]}" &>/dev/null
+    fi
+fi
+
+# Connection details (pre-filled if loaded from profile)
+SERVER=$(gum input --value "$SERVER" --placeholder "Server hostname or IP" --prompt "Server: ")
+if [[ -z "$SERVER" ]]; then
+    echo "Server is required"
+    exit 1
+fi
+
+USER=$(gum input --value "$USER" --placeholder "Username" --prompt "User: ")
+if [[ -z "$USER" ]]; then
+    echo "Username is required"
+    exit 1
+fi
+
+# Password handling
+if [[ -n "$PASS_ENTRY" ]]; then
+    if gum confirm "Use pass entry '$PASS_ENTRY'?"; then
+        PASSWORD=$(pass show "$PASS_ENTRY" 2>/dev/null | head -n1) || {
+            gum style --foreground 196 "Failed to retrieve password from pass"
+            PASS_ENTRY=""
+        }
+    else
+        PASS_ENTRY=""
+    fi
+fi
+
+if [[ -z "$PASSWORD" ]]; then
+    PASS_METHOD=$(gum choose --header "Password:" "Prompt at connect" "Enter now" "Use pass")
+    
+    case "$PASS_METHOD" in
+        "Enter now")
+            PASSWORD=$(gum input --password --placeholder "Password" --prompt "Password: ")
+            ;;
+        "Use pass")
+            PASS_ENTRY=$(gum input --placeholder "path/to/entry" --prompt "Pass entry: ")
+            if [[ -n "$PASS_ENTRY" ]]; then
+                PASSWORD=$(pass show "$PASS_ENTRY" 2>/dev/null | head -n1) || {
+                    gum style --foreground 196 "Failed to retrieve password from pass"
+                    PASS_ENTRY=""
+                }
+            fi
+            ;;
+    esac
+fi
+
+# Helper for boolean toggles
+bool_choose() {
+    local header="$1"
+    local current="$2"
+    local selected="Disabled"
+    [[ "$current" == "true" ]] && selected="Enabled"
+    result=$(gum choose --header "$header" --selected "$selected" "Enabled" "Disabled")
+    [[ "$result" == "Enabled" ]] && echo "true" || echo "false"
+}
+
+# Optional features
+echo ""
+gum style --foreground 212 "Optional features:"
+
+DYNAMIC_RES=$(bool_choose "Dynamic resolution:" "$DYNAMIC_RES")
+CLIPBOARD=$(bool_choose "Clipboard sharing:" "$CLIPBOARD")
+SOUND=$(bool_choose "Audio redirection:" "$SOUND")
+MIC=$(bool_choose "Microphone redirection:" "$MIC")
+
+# Network optimization
+NETWORK=$(gum choose --header "Network optimization:" --selected "${NETWORK^}" \
+    "Auto" "LAN" "Broadband" "Modem" "None")
+NETWORK="${NETWORK,,}"
+
+# Optional folder sharing
+if [[ -n "$SHARE_PATH" ]]; then
+    if ! gum confirm "Keep folder share ($SHARE_NAME: $SHARE_PATH)?"; then
+        SHARE_NAME=""
+        SHARE_PATH=""
+    fi
+fi
+
+if [[ -z "$SHARE_PATH" ]] && gum confirm "Share a local folder?"; then
+    SHARE_NAME=$(gum input --placeholder "share" --prompt "Share name: ")
+    SHARE_PATH=$(gum input --placeholder "/home/user/shared" --prompt "Local path: ")
+fi
+
+# Build command
+CMD=(sdl-freerdp3 /v:"$SERVER" /u:"$USER" /f /scale:100)
+
+[[ -n "$PASSWORD" ]] && CMD+=(/p:"$PASSWORD")
+
+[[ "$DYNAMIC_RES" == "true" ]] && CMD+=(/dynamic-resolution)
+[[ "$CLIPBOARD" == "true" ]] && CMD+=(/clipboard)
+[[ "$SOUND" == "true" ]] && CMD+=(/sound:sys:pulse)
+[[ "$MIC" == "true" ]] && CMD+=(/microphone:sys:pulse)
+[[ "$NETWORK" != "none" ]] && CMD+=(/network:"$NETWORK")
+
+if [[ -n "$SHARE_NAME" && -n "$SHARE_PATH" ]]; then
+    CMD+=(/drive:"$SHARE_NAME","$SHARE_PATH")
+fi
+
+# Show command and confirm
+echo ""
+gum style --foreground 212 "Command to execute:"
+echo "${CMD[*]}"
+echo ""
+
+ACTION=$(gum choose "Connect" "Save profile & connect" "Save profile" "Cancel")
+
+case "$ACTION" in
+    "Save profile & connect")
+        save_profile
+        exec "${CMD[@]}" &>/dev/null
+        ;;
+    "Save profile")
+        save_profile
+        ;;
+    "Connect")
+        exec "${CMD[@]}" &>/dev/null
+        ;;
+    "Cancel")
+        echo "Cancelled"
+        ;;
+esac

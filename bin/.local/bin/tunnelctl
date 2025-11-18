@@ -1,5 +1,7 @@
 #!/usr/bin/env zsh
 
+# TODO: add a json output for waybar
+
 # --- Generic SSH tunnel helpers ----------------------------------------------
 # Usage:
 #   tunnelctl up <name> [<host> <local_port> <remote_port>]

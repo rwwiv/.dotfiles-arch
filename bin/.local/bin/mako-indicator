@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# TODO: add notification indicator (󰅸) in normal mode
+
+icon=""
+tooltip=""
+class=""
+
+if makoctl mode | grep -q 'do-not-disturb' &>/dev/null; then
+    icon="󰪑"
+    tooltip="Focus mode on"
+    class="dnd-on"
+else
+    icon="󰂜"
+    tooltip="Focus mode off"
+    class="dnd-off"
+fi
+
+echo "{\"text\": \"$icon\", \"tooltip\": \"$tooltip\", \"class\": \"$class\"}"

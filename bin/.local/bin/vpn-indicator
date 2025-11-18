@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+# TODO: json output of vpn connection status for waybar
+# on: 󰒙, off: 󰦜

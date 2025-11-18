@@ -8,15 +8,16 @@
   "modules-left": ["custom/omarchy", "hyprland/workspaces"],
   "modules-right": [
     "group/tray-expander",
-    "temperature#cpu",
     "bluetooth",
     "network",
     "wireplumber#microphone",
     "wireplumber#volume",
+    "temperature#cpu",
     "battery",
     "idle_inhibitor",
-    "mpris",
-    "custom/sep",
+    "custom/dnd",
+    // "mpris",
+    // "custom/sep",
     "clock",
     "custom/update",
     "custom/screenrecording-indicator"
@@ -29,6 +30,7 @@
     "cursor": false,
     "format": "{icon}",
     "format-icons": {
+      // monitor 0
       "1": "一",
       "2": "二",
       "3": "三",
@@ -39,6 +41,7 @@
       "8": "八",
       "9": "九",
       "10": "〇",
+      // monitor 1
       "11": "一",
       "12": "二",
       "13": "三",
@@ -79,23 +82,29 @@
   // ============================================
   "battery": {
     "cursor": false,
-    "format": "bat:{capacity}%",
-    "format-charging": "bat:{capacity}% 󱐋",
-    "format-discharging": "bat:{capacity}%",
-    "format-discharging-critical": "bat:{capacity}% 󰀦 ",
-    "format-plugged": "AC",
+    // "format": "bat:{capacity}%",
+    // "format-charging": "bat:{capacity}% 󱐋",
+    // "format-discharging": "bat:{capacity}%",
+    // "format-discharging-critical": "bat:{capacity}% 󰀦 ",
+    "format": "{capacity}% {icon}",
+    "format-full": "AC",
+    "format-time": "{H}h{m}m",
     "interval": 10,
     "on-click": "omarchy-menu power",
     "states": {
-      "critical": 10,
-      "warning": 20
+      "critical": 15,
+      "warning": 25
+    },
+    "format-icons": {
+      "charging": ["󰢟", "󱊤", "󱊥", "󱊦"],
+      "default": ["󰂎", "󱊡", "󱊢", "󱊣"],
     },
     "tooltip-format-charging": "{capacity}% | {power:>1.0f}W↑ | {time} to full",
     "tooltip-format-discharging": "{capacity}% | {power:>1.0f}W↓ | {time} to empty"
   },
   "bluetooth": {
     "cursor": false,
-    "format": "bt:{status}",
+    "format": "{status} 󰂯",
     "on-click": "xdg-terminal-exec --app-id=com.rwwiv.Bluetui -e launch-bluetui",
     "tooltip-format-connected": "Devices connected: {num_connections}\n{device_enumerate}",
     "tooltip-format-on": "No devices connected",
@@ -107,27 +116,28 @@
     "tooltip-format": "{dynamic}",
     "dynamic-order": ["title", "artist", "album"],
     "status-icons": {
-      "playing": "󰏤",
-      "paused": "󰐊",
-      "stopped": "󰓛"
+      "playing": "󰏦",
+      "paused": "󰐍",
+      "stopped": "󰙧"
     },
   },
   "network": {
     "cursor": false,
     "format": "{ifname}",
-    "format-disabled": "net:殺",
-    "format-disconnected": "net:沒",
-    "format-ethernet": "{ifname}:{ipaddr}",
-    "format-wifi": "{ifname}:{signalStrength}%",
+    "format-disabled": "net 殺",
+    "format-disconnected": "none 󱄙",
+    "format-ethernet": "{ipaddr} 󰈀",
+    "format-wifi": "{essid} 󱄙",
     "interval": 10,
     "on-click": "omarchy-launch-wifi",
     "tooltip-format-disconnected": "Disconnected",
-    "tooltip-format-ethernet": "⇣{bandwidthDownBytes}  ⇡{bandwidthUpBytes}",
-    "tooltip-format-wifi": "{essid} ({frequency} GHz)\n⇣{bandwidthDownBytes}  ⇡{bandwidthUpBytes}"
+    "tooltip-format-ethernet": "{ifname} | ⇣{bandwidthDownBytes}  ⇡{bandwidthUpBytes}",
+    "tooltip-format-wifi": "{signalStrength}% | {frequency} GHz | {ipaddr} | ⇣{bandwidthDownBytes}  ⇡{bandwidthUpBytes}"
   },
   "temperature#cpu": {
     "cursor": false,
-    "format": "cpu:{temperatureC}°C",
+    // "format": "cpu:{temperatureC}°C",
+    "format": "{temperatureC}°C 󰔐",
     "thermal-zone": 5,
     "interval": 5,
     "tooltip": false,
@@ -135,17 +145,19 @@
   },
   "wireplumber#microphone": {
     "cursor": false,
-    "format": "mic:on",
-    "format-muted": "mic:off",
+    "format": "listen 󰍬",
+    "format-muted": "muted  󰍮",
     "node-type": "Audio/Source",
     "on-click": "xdg-terminal-exec --app-id=com.omarchy.Wiremix -e wiremix -v recording",
     "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle",
+    "scroll-step": 0,
     "tooltip-format": "{source_desc}"
   },
   "wireplumber#volume": {
     "cursor": false,
-    "format": "vol:{volume}%",
-    "format-muted": "vol:muted",
+    // "format": "vol:{volume}%",
+    "format": "{volume}% 󰥛",
+    "format-muted": "muted 󰥛",
     "on-click": "xdg-terminal-exec --app-id=com.omarchy.Wiremix -e wiremix",
     "on-click-right": "pamixer -t",
     "scroll-step": 0,
@@ -158,9 +170,11 @@
   "idle_inhibitor": {
     "cursor": false,
     "format": "{icon}",
+    "tooltip-format-activated": "Screen timeout off",
+    "tooltip-format-deactivated": "Screen timeout on",
     "format-icons": {
-      "activated": "",
-      "deactivated": ""
+      "activated": "󰪥",
+      "deactivated": "󰄰"
     }
   },
 
@@ -213,5 +227,13 @@
   "custom/sep": {
     "format": "|",
     "tooltip": false
+  },
+  "custom/dnd": {
+    "cursor": false,
+    "format": "{}",
+    "return-type": "json",
+    "exec": "mako-indicator",
+    "on-click": "makoctl mode -t do-not-disturb",
+    "interval": 1,
   }
 }
