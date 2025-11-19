@@ -1,0 +1,9 @@
+#!/bin/bash
+
+makoctl mode -t do-not-disturb
+
+if makoctl mode | grep -q 'do-not-disturb'; then
+    pw-metadata -n default 0 dnd-mode true
+else
+    pw-metadata -n default 0 dnd-mode false
+fi

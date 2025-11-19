@@ -233,7 +233,7 @@
     "format": "{}",
     "return-type": "json",
     "exec": "mako-indicator",
-    "on-click": "makoctl mode -t do-not-disturb",
+    "on-click": "toggle-dnd",
     "interval": 1,
   }
 }

@@ -6,11 +6,14 @@ icon=""
 tooltip=""
 class=""
 
-if makoctl mode | grep -q 'do-not-disturb' &>/dev/null; then
+# ensure pw-metadata follows mako state
+if makoctl mode | grep -q 'do-not-disturb'; then
+    pw-metadata -n default 0 dnd-mode true &>/dev/null
     icon="󰪑"
     tooltip="Focus mode on"
     class="dnd-on"
 else
+    pw-metadata -n default 0 dnd-mode false &>/dev/null
     icon="󰂜"
     tooltip="Focus mode off"
     class="dnd-off"
