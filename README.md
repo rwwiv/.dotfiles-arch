@@ -13,7 +13,7 @@ Personal dotfiles for Arch Linux + Hyprland.
 - **WM**: Hyprland
 - **Shell**: Zsh
 - **Terminal**: Ghostty
-- **Editor**: Helix, Zed
+- **Editor**: Neovim
 - **Bar**: Waybar
 
 ## Installation
