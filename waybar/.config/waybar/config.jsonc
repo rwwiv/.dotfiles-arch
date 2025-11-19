@@ -106,6 +106,7 @@
     "cursor": false,
     "format": "{status} 󰂯",
     "on-click": "xdg-terminal-exec --app-id=com.rwwiv.Bluetui -e launch-bluetui",
+    "on-click-right": "bluetoothctl show | grep -q \"PowerState: off\" && bluetoothctl power on || bluetoothctl power off",
     "tooltip-format-connected": "Devices connected: {num_connections}\n{device_enumerate}",
     "tooltip-format-on": "No devices connected",
     "tooltip-off": false
