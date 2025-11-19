@@ -16,48 +16,25 @@ Personal dotfiles for Arch Linux + Hyprland.
 - **Editor**: Neovim
 - **Bar**: Waybar
 
-## Installation
-
-### Interactive (First Time)
+## Setup
 
 ```bash
-# Prerequisites
-sudo pacman -S zsh
+# Install yadm
+sudo pacman -S yadm
 
-# Clone and run installer
-git clone https://github.com/rwwiv/.dotfiles-arch.git ~/.dotfiles
-cd ~/.dotfiles
-./install
+# Clone dotfiles
+yadm clone https://github.com/rwwiv/.dotfiles-arch.git
+
+# Run bootstrap (installs packages, sets up system)
+yadm bootstrap
 ```
 
-### Automated (Ansible + Mise)
+## Notes
 
-```bash
-# Prerequisites
-sudo pacman -S ansible mise
-mise run install-collections
-
-# Full setup
-cd ~/.dotfiles
-mise run install
-```
-
-## Tasks
-
-```bash
-# List all available tasks
-mise tasks
-
-# Common tasks
-mise run install        # Full setup (packages + services + stow + system)
-mise run packages       # Install packages
-mise run stow           # Stow all dotfiles
-mise run hypr           # Stow Hyprland + Waybar
-mise run desktop        # Stow desktop environment (hypr + waybar)
-mise run dotfiles       # Stow common configs (git + ssh + shell + terminal)
-```
-
-Tasks use dependencies, so `mise run install` automatically runs: packages → services → stow → system.
+- Managed with [yadm](https://yadm.io/)
+- Bootstrap script handles packages, services, and `/etc` symlinks
+- Use `yadm` commands like git (e.g., `yadm status`, `yadm commit`)
+- `ylg` alias for lazygit with yadm
 
 ## License
 

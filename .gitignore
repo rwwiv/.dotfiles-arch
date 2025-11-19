@@ -30,3 +30,6 @@ ansible/.vault_pass
 ansible/
 stow-system
 install
+
+# Backup directories
+dotfiles-backup-*/

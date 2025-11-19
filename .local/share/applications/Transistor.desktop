@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Transistor
+Comment=Play this game on Steam
+Exec=steam steam://rungameid/237930
+Icon=steam_icon_237930
+Terminal=false
+Type=Application
+Categories=Game;

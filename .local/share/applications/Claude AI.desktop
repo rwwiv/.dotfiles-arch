@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Name=Claude AI
+Comment=Claude AI
+Exec=omarchy-launch-webapp https://claude.ai
+Terminal=false
+Type=Application
+Icon=/home/rwwiv/.local/share/applications/icons/Claude AI.png
+StartupNotify=true

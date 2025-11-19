@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Name=Gemini
+Comment=Gemini
+Exec=omarchy-launch-webapp https://gemini.google.com/app
+Terminal=false
+Type=Application
+Icon=/home/rwwiv/.local/share/applications/icons/Gemini.png
+StartupNotify=true

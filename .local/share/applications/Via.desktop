@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Name=Via
+Comment=Via
+Exec=omarchy-launch-webapp https://usevia.app
+Terminal=false
+Type=Application
+Icon=/home/rwwiv/.local/share/applications/icons/Via.png
+StartupNotify=true
