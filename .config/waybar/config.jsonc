@@ -139,7 +139,7 @@
     "cursor": false,
     // "format": "cpu:{temperatureC}°C",
     "format": "{temperatureC}°C 󰔐",
-    "thermal-zone": 5,
+    "thermal-zone": 9,
     "interval": 5,
     "tooltip": false,
     "on-click": "xdg-terminal-exec --app-id=com.rwwiv.BTOP -e btop"
