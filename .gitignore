@@ -16,20 +16,14 @@
 !.local/
 !**/.local/
 
+# Files with "local" anywhere in the name (but not directories)
+*local*
+!*local*/
+!**/*local*/
+
 # local hypr config
-hypr/**/local.conf
-hypr/**/*.glsl
-
-# Ansible
-ansible/*.retry
-ansible/.ansible/
-ansible/collections/
-ansible/.vault_pass
-
-# Old stow/ansible artifacts (no longer needed with yadm)
-ansible/
-stow-system
-install
+.config/hypr/**/local.conf
+.config/hypr/**/*.glsl
 
 # Backup directories
 dotfiles-backup-*/
