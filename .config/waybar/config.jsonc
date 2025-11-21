@@ -16,8 +16,6 @@
     "battery",
     "idle_inhibitor",
     "custom/dnd",
-    // "mpris",
-    // "custom/sep",
     "clock",
     "custom/update",
     "custom/screenrecording-indicator"
@@ -82,10 +80,6 @@
   // ============================================
   "battery": {
     "cursor": false,
-    // "format": "bat:{capacity}%",
-    // "format-charging": "bat:{capacity}% 󱐋",
-    // "format-discharging": "bat:{capacity}%",
-    // "format-discharging-critical": "bat:{capacity}% 󰀦 ",
     "format": "{capacity}% {icon}",
     "format-full": "AC",
     "format-time": "{H}h{m}m",
@@ -137,7 +131,6 @@
   },
   "temperature#cpu": {
     "cursor": false,
-    // "format": "cpu:{temperatureC}°C",
     "format": "{temperatureC}°C 󰔐",
     "thermal-zone": 9,
     "interval": 5,
@@ -156,7 +149,6 @@
   },
   "wireplumber#volume": {
     "cursor": false,
-    // "format": "vol:{volume}%",
     "format": "{volume}% 󰥛",
     "format-muted": "muted 󰥛",
     "on-click": "xdg-terminal-exec --app-id=com.omarchy.Wiremix -e wiremix",

@@ -50,9 +50,14 @@ if command -v atuin &>/dev/null; then
   znap eval atuin "atuin init zsh --disable-up-arrow"
 fi
 
+if command -v zoxide &>/dev/null; then
+  znap eval zoxide "zoxide init zsh --cmd cd"
+fi
+
 [[ -r $HOME/.zsh/conf/rc.zsh ]] && source $HOME/.zsh/conf/rc.zsh
 
 znap source zsh-users/zsh-autosuggestions
 znap source zsh-users/zsh-syntax-highlighting
 znap source wfxr/forgit
-znap source ohmyzsh/ohmyzsh plugins/{aliases,encode64,extract,git,safe-paste,z,kubectl}
+znap source ohmyzsh/ohmyzsh plugins/{aliases,encode64,extract,git,safe-paste,kubectl}
+znap source zsh-users/zsh-completions
