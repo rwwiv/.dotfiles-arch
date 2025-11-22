@@ -1,5 +1,4 @@
 # Core packages required for basic dotfiles functionality
-stow
 git
 git-lfs
 zsh
