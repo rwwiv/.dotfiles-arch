@@ -86,7 +86,8 @@
 #network,
 #wireplumber,
 #idle_inhibitor,
-#custom-dnd {
+#custom-dnd,
+#custom-vpn {
   background-color: @button-background;
   border: 1px solid shade(@background, 0.8);
   margin: 6px 3px;
@@ -101,7 +102,8 @@
 #idle_inhibitor:hover,
 #network:hover,
 #wireplumber:hover,
-#custom-dnd:hover {
+#custom-dnd:hover,
+#custom-vpn:hover {
   color: shade(@foreground, 1.05);
   background-color: shade(@button-background, 1.1);
 }
@@ -155,6 +157,16 @@
   padding-left: 5px;
   padding-right: 9px;
   background-color: #535397;
+}
+
+#custom-vpn.vpn-off {
+  padding-left: 5px;
+  padding-right: 9px;
+}
+
+#custom-vpn.vpn-on {
+  /* padding-left: 5px; */
+  padding-right: 8px;
 }
 
 #mpris {

@@ -1,4 +1,24 @@
 #!/usr/bin/env bash
 
-# TODO: json output of vpn connection status for waybar
-# on: 󰒙, off: 󰦜
+icon=""
+tooltip=""
+class=""
+
+# Check Tailscale status
+if command -v tailscale &>/dev/null; then
+    if tailscale status --json 2>/dev/null | grep -q '"BackendState".*:.*"Running"'; then
+        icon="󰒙"
+        tooltip="Tailscale connected"
+        class="vpn-on"
+    else
+        icon="󰦜"
+        tooltip="Tailscale disconnected"
+        class="vpn-off"
+    fi
+else
+    icon="󰦜"
+    tooltip="Tailscale not found"
+    class="vpn-off"
+fi
+
+echo "{\"text\": \"$icon\", \"tooltip\": \"$tooltip\", \"class\": \"$class\"}"

@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+# Open Tailscale local webui
+if tailscale status --json 2>/dev/null | grep -q '"BackendState".*:.*"Running"'; then
+  xdg-open "http://100.100.100.100" 2>/dev/null &
+fi

@@ -20,6 +20,7 @@
     "battery",
     "idle_inhibitor",
     "custom/dnd",
+    "custom/vpn",
     "clock",
     "custom/update",
     "custom/screenrecording-indicator"
@@ -241,7 +242,16 @@
     "format": "{}",
     "return-type": "json",
     "exec": "mako-indicator",
-    "on-click": "toggle-dnd",
+    "on-click": "dnd-toggle",
     "interval": 1,
+  },
+  "custom/vpn": {
+    "cursor": false,
+    "format": "{}",
+    "return-type": "json",
+    "exec": "vpn-indicator",
+    "on-click": "tailscale-webui",
+    "on-click-right": "tailscale-toggle",
+    "interval": 5,
   }
 }

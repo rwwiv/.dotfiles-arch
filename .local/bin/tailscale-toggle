@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+# Toggle Tailscale up/down
+if tailscale status --json 2>/dev/null | grep -q '"BackendState".*:.*"Running"'; then
+    # Currently running, bring it down
+    tailscale down
+else
+    # Currently down, bring it up
+    tailscale up
+fi
