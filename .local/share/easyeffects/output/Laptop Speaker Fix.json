@@ -283,7 +283,7 @@
                 },
                 "band5": {
                     "frequency": 71.43,
-                    "gain": 0.0,
+                    "gain": 4.0,
                     "mode": "RLC (BT)",
                     "mute": false,
                     "q": 4.36,
@@ -294,7 +294,7 @@
                 },
                 "band6": {
                     "frequency": 89.93,
-                    "gain": 0.0,
+                    "gain": 4.0,
                     "mode": "RLC (BT)",
                     "mute": false,
                     "q": 4.36,
@@ -339,7 +339,7 @@
             },
             "mode": "IIR",
             "num-bands": 30,
-            "output-gain": 0.0,
+            "output-gain": -0.6,
             "pitch-left": 0.0,
             "pitch-right": 0.0,
             "right": {
@@ -620,7 +620,7 @@
                 },
                 "band5": {
                     "frequency": 71.43,
-                    "gain": 0.0,
+                    "gain": 4.0,
                     "mode": "RLC (BT)",
                     "mute": false,
                     "q": 4.36,
@@ -631,7 +631,7 @@
                 },
                 "band6": {
                     "frequency": 89.93,
-                    "gain": 0.0,
+                    "gain": 4.0,
                     "mode": "RLC (BT)",
                     "mute": false,
                     "q": 4.36,
@@ -678,12 +678,12 @@
         },
         "exciter#0": {
             "amount": 6.0,
-            "blend": 0.0,
+            "blend": -5.0,
             "bypass": false,
             "ceil": 16000.0,
             "ceil-active": true,
-            "harmonics": 8.000000000000002,
-            "input-gain": -2.0,
+            "harmonics": 8.0,
+            "input-gain": -1.5,
             "output-gain": 0.0,
             "scope": 5500.0
         },
@@ -695,7 +695,7 @@
             "attack": 5.0,
             "bypass": false,
             "dithering": "None",
-            "gain-boost": true,
+            "gain-boost": false,
             "input-gain": 0.0,
             "input-to-link": 0.0,
             "input-to-sidechain": 0.0,
