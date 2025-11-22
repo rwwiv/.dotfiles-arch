@@ -4,7 +4,7 @@
 #
 # This script is designed to be UNATTENDED and IDEMPOTENT.
 # It will automatically:
-# 1. Create symlinks for /etc system files
+# 1. Copy files to /etc (for security, copies rather than symlinks)
 # 2. Install packages (core and optional)
 # 3. Set up Git LFS
 # 4. Enable systemd services
@@ -12,7 +12,7 @@
 # 6. Configure default applications
 #
 # Environment variables to control behavior:
-#   YADM_BOOTSTRAP_SKIP_SYSTEM=1    - Skip /etc symlink creation
+#   YADM_BOOTSTRAP_SKIP_SYSTEM=1    - Skip /etc file copying
 #   YADM_BOOTSTRAP_SKIP_PACKAGES=1  - Skip package installation
 #   YADM_BOOTSTRAP_SKIP_OPTIONAL=1  - Skip optional packages
 #   YADM_BOOTSTRAP_SKIP_SERVICES=1  - Skip systemd services
@@ -72,23 +72,23 @@ echo "Dotfiles directory: $DOTFILES_DIR"
 echo
 
 # ============================================================================
-# 1. Create /etc symlinks
+# 1. Copy /etc files
 # ============================================================================
 if [[ -n "${YADM_BOOTSTRAP_SKIP_SYSTEM:-}" ]]; then
-    print_skip "Skipping system file symlinks (YADM_BOOTSTRAP_SKIP_SYSTEM=1)"
+    print_skip "Skipping system file copies (YADM_BOOTSTRAP_SKIP_SYSTEM=1)"
 else
     print_header "Step 1: System Files (/etc)"
 
     if [[ -d "$DOTFILES_DIR/etc" ]]; then
-        print_info "Creating /etc symlinks from $DOTFILES_DIR/etc..."
+        print_info "Copying files to /etc from $DOTFILES_DIR/etc..."
         echo
 
-        # Function to create symlinks recursively
-        create_symlinks() {
+        # Function to copy files recursively
+        copy_files() {
             local src_base="$1"
             local dst_base="$2"
             local has_errors=0
-            local src_file rel_path dst_file dst_dir current_target
+            local src_file rel_path dst_file dst_dir
 
             while IFS= read -r src_file; do
                 # Get relative path from src_base
@@ -107,33 +107,40 @@ else
                     fi
                 fi
 
-                # Create symlink
-                if [[ -L "$dst_file" ]]; then
-                    # Check if it points to the right place
-                    current_target=$(readlink "$dst_file")
-                    if [[ "$current_target" == "$src_file" ]]; then
-                        print_success "Already linked: $rel_path"
-                    else
-                        print_warning "Symlink exists but points elsewhere: $dst_file -> $current_target"
-                    fi
-                elif [[ -e "$dst_file" ]]; then
-                    print_warning "File exists (backing up): $dst_file"
-                    if sudo mv "$dst_file" "$dst_file.bak.$(date +%Y%m%d-%H%M%S)" 2>/dev/null; then
-                        if sudo ln -s "$src_file" "$dst_file" 2>/dev/null; then
-                            print_success "Linked (after backup): $rel_path"
+                # Check if file exists and compare
+                if [[ -e "$dst_file" ]]; then
+                    # Compare files to see if they're different
+                    if cmp -s "$src_file" "$dst_file" 2>/dev/null; then
+                        # File content matches, but verify ownership
+                        if [[ "$(stat -c '%u:%g' "$dst_file" 2>/dev/null)" != "0:0" ]]; then
+                            if sudo chown root:root "$dst_file" 2>/dev/null; then
+                                print_success "Fixed ownership: $rel_path"
+                            else
+                                print_error "Failed to fix ownership: $rel_path"
+                                has_errors=1
+                            fi
                         else
-                            print_error "Failed to create symlink: $rel_path"
-                            has_errors=1
+                            print_success "Already up-to-date: $rel_path"
                         fi
                     else
-                        print_error "Failed to backup: $dst_file"
-                        has_errors=1
+                        print_warning "File exists (backing up): $dst_file"
+                        if sudo mv "$dst_file" "$dst_file.bak.$(date +%Y%m%d-%H%M%S)" 2>/dev/null; then
+                            if sudo cp -p "$src_file" "$dst_file" 2>/dev/null && sudo chown root:root "$dst_file" 2>/dev/null; then
+                                print_success "Copied (after backup): $rel_path"
+                            else
+                                print_error "Failed to copy file: $rel_path"
+                                has_errors=1
+                            fi
+                        else
+                            print_error "Failed to backup: $dst_file"
+                            has_errors=1
+                        fi
                     fi
                 else
-                    if sudo ln -s "$src_file" "$dst_file" 2>/dev/null; then
-                        print_success "Linked: $rel_path"
+                    if sudo cp -p "$src_file" "$dst_file" 2>/dev/null && sudo chown root:root "$dst_file" 2>/dev/null; then
+                        print_success "Copied: $rel_path"
                     else
-                        print_error "Failed to create symlink: $rel_path"
+                        print_error "Failed to copy file: $rel_path"
                         has_errors=1
                     fi
                 fi
@@ -142,12 +149,12 @@ else
             return $has_errors
         }
 
-        if create_symlinks "$DOTFILES_DIR/etc" "/etc"; then
+        if copy_files "$DOTFILES_DIR/etc" "/etc"; then
             echo
-            print_success "System file symlinks created successfully"
+            print_success "System files copied successfully"
         else
             echo
-            print_warning "System file symlinks completed with some errors"
+            print_warning "System file copies completed with some errors"
         fi
     else
         print_info "No system files found (no etc/ directory)"
@@ -181,7 +188,8 @@ else
             print_info "Installing core packages from pkglist.txt..."
             echo
 
-            if yay -S --needed --noconfirm - < "$DOTFILES_DIR/pkglist.txt" 2>&1 | tee /tmp/yadm-bootstrap-core.log; then
+            # Filter out comments and blank lines before passing to yay
+            if grep -v '^#' "$DOTFILES_DIR/pkglist.txt" | grep -v '^[[:space:]]*$' | yay -S --needed --noconfirm - 2>&1 | tee /tmp/yadm-bootstrap-core.log; then
                 print_success "Core packages installed"
             else
                 print_error "Some core packages failed to install (see /tmp/yadm-bootstrap-core.log)"
@@ -197,8 +205,9 @@ else
                 print_info "Installing optional packages from pkglist-optional.txt..."
                 echo
 
+                # Filter out comments and blank lines before passing to yay
                 # Use --noconfirm and don't fail on errors for optional packages
-                if yay -S --needed --noconfirm - < "$DOTFILES_DIR/pkglist-optional.txt" 2>&1 | tee /tmp/yadm-bootstrap-optional.log; then
+                if grep -v '^#' "$DOTFILES_DIR/pkglist-optional.txt" | grep -v '^[[:space:]]*$' | yay -S --needed --noconfirm - 2>&1 | tee /tmp/yadm-bootstrap-optional.log; then
                     print_success "Optional packages installed"
                 else
                     print_warning "Some optional packages failed to install (see /tmp/yadm-bootstrap-optional.log)"
