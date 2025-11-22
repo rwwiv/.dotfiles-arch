@@ -7,16 +7,16 @@ class=""
 # Check Tailscale status
 if command -v tailscale &>/dev/null; then
     if tailscale status --json 2>/dev/null | grep -q '"BackendState".*:.*"Running"'; then
-        icon="󰒙"
+        icon="up 󰒙"
         tooltip="Tailscale connected"
         class="vpn-on"
     else
-        icon="󰦜"
+        icon="down 󰦜"
         tooltip="Tailscale disconnected"
         class="vpn-off"
     fi
 else
-    icon="󰦜"
+    icon="unkown 󰦜"
     tooltip="Tailscale not found"
     class="vpn-off"
 fi

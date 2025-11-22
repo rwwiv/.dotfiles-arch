@@ -13,6 +13,7 @@
   "modules-right": [
     "group/tray-expander",
     "bluetooth",
+    "custom/vpn",
     "network",
     "wireplumber#microphone",
     "wireplumber#volume",
@@ -20,7 +21,6 @@
     "battery",
     "idle_inhibitor",
     "custom/dnd",
-    "custom/vpn",
     "clock",
     "custom/update",
     "custom/screenrecording-indicator"
