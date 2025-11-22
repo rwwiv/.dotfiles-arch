@@ -1,0 +1,90 @@
+#!/bin/bash
+# Toggles hiding waybar on the currently focused monitor
+
+set -e
+
+CONFIG_FILE="$HOME/.config/waybar/config.jsonc"
+OUTPUT_KEY="output"
+
+# Reload waybar config without restarting
+reload_waybar() {
+    pkill -SIGUSR2 waybar 2>/dev/null
+}
+
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "Error: $CONFIG_FILE not found."
+    exit 1
+fi
+
+# Get focused monitor
+focused_monitor=$(hyprctl monitors -j | jq -r '.[] | select(.focused == true).name')
+
+if [[ -z "$focused_monitor" ]]; then
+    echo "Error: Could not determine focused monitor"
+    exit 1
+fi
+
+# Read current output value (could be commented or uncommented)
+current_line=$(grep -E "^[[:space:]]*(//[[:space:]]*)?\"${OUTPUT_KEY}\":" "$CONFIG_FILE" || echo "")
+
+if [[ -z "$current_line" ]]; then
+    # No output line exists, create one to hide this monitor
+    sed -i "s/^\([[:space:]]*\)\"layer\":/\1\"output\": [\"!${focused_monitor}\"],\n\1\"layer\":/" "$CONFIG_FILE"
+else
+    # Extract current exclusion list
+    if echo "$current_line" | grep -q "//"; then
+        # Line is commented, treat as empty exclusion list
+        exclusions=()
+    else
+        # Extract the array or string value
+        current_value=$(echo "$current_line" | sed -E 's/^[[:space:]]*"output":[[:space:]]*//' | sed 's/,$//')
+
+        if [[ "$current_value" == "["* ]]; then
+            # It's an array, parse it
+            exclusions=($(echo "$current_value" | jq -r '.[]' | sed 's/^!//' ))
+        else
+            # It's a single string
+            single_val=$(echo "$current_value" | tr -d '"' | sed 's/^!//')
+            if [[ -n "$single_val" ]]; then
+                exclusions=("$single_val")
+            else
+                exclusions=()
+            fi
+        fi
+    fi
+
+    # Check if focused monitor is in exclusion list
+    if [[ " ${exclusions[@]} " =~ " ${focused_monitor} " ]]; then
+        # Remove from exclusions (show on this monitor)
+        new_exclusions=()
+        for mon in "${exclusions[@]}"; do
+            [[ "$mon" != "$focused_monitor" ]] && new_exclusions+=("$mon")
+        done
+    else
+        # Add to exclusions (hide on this monitor)
+        new_exclusions=("${exclusions[@]}" "$focused_monitor")
+    fi
+
+    # Build new output value
+    if [[ ${#new_exclusions[@]} -eq 0 ]]; then
+        # No exclusions, comment out the line
+        sed -i -E "s/^([[:space:]]*)\"${OUTPUT_KEY}\":[^,]*/\1\/\/\"${OUTPUT_KEY}\": []/" "$CONFIG_FILE"
+    elif [[ ${#new_exclusions[@]} -eq 1 ]]; then
+        # Single exclusion, use string format
+        sed -i -E "s/^([[:space:]]*(\/\/[[:space:]]*)?)\"${OUTPUT_KEY}\":[^,]*/\1\"${OUTPUT_KEY}\": \"!${new_exclusions[0]}\"/" "$CONFIG_FILE"
+        # Make sure it's uncommented
+        sed -i -E "s/^([[:space:]]*)\/\/([[:space:]]*)\"${OUTPUT_KEY}\":/\1\2\"${OUTPUT_KEY}\":/" "$CONFIG_FILE"
+    else
+        # Multiple exclusions, use array format
+        output_array="["
+        for mon in "${new_exclusions[@]}"; do
+            output_array+="\"!${mon}\", "
+        done
+        output_array="${output_array%, }]"
+        sed -i -E "s/^([[:space:]]*(\/\/[[:space:]]*)?)\"${OUTPUT_KEY}\":[^,]*/\1\"${OUTPUT_KEY}\": ${output_array}/" "$CONFIG_FILE"
+        # Make sure it's uncommented
+        sed -i -E "s/^([[:space:]]*)\/\/([[:space:]]*)\"${OUTPUT_KEY}\":/\1\2\"${OUTPUT_KEY}\":/" "$CONFIG_FILE"
+    fi
+fi
+
+reload_waybar
