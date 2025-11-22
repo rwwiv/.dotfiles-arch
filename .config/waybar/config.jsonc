@@ -2,10 +2,14 @@
   "reload_style_on_change": true,
   "layer": "bottom",
   "position": "top",
+  //"output": [],
   "spacing": 0,
   "height": 32,
   "margin": "10px 10px 0 10px",
-  "modules-left": ["custom/omarchy", "hyprland/workspaces"],
+  "modules-left": [
+    "custom/omarchy",
+    "hyprland/workspaces"
+  ],
   "modules-right": [
     "group/tray-expander",
     "bluetooth",
@@ -20,7 +24,6 @@
     "custom/update",
     "custom/screenrecording-indicator"
   ],
-
   // ============================================
   // Hyprland Modules
   // ============================================
@@ -63,7 +66,6 @@
     },
     "separate-outputs": true
   },
-
   // ============================================
   // Clock
   // ============================================
@@ -74,7 +76,6 @@
     "tooltip": true,
     "tooltip-format": "{:%A, %B %d, %Y}"
   },
-
   // ============================================
   // System Modules
   // ============================================
@@ -90,8 +91,18 @@
       "warning": 25
     },
     "format-icons": {
-      "charging": ["󰢟", "󱊤", "󱊥", "󱊦"],
-      "default": ["󰂎", "󱊡", "󱊢", "󱊣"],
+      "charging": [
+        "󰢟",
+        "󱊤",
+        "󱊥",
+        "󱊦"
+      ],
+      "default": [
+        "󰂎",
+        "󱊡",
+        "󱊢",
+        "󱊣"
+      ],
     },
     "tooltip-format-charging": "{capacity}% | {power:>1.0f}W↑ | {time} to full",
     "tooltip-format-discharging": "{capacity}% | {power:>1.0f}W↓ | {time} to empty"
@@ -99,7 +110,7 @@
   "bluetooth": {
     "cursor": false,
     "format": "{status} 󰂯",
-    "on-click": "xdg-terminal-exec --app-id=com.rwwiv.Bluetui -e launch-bluetui",
+    "on-click": "omarchy-launch-bluetooth",
     "on-click-right": "bluetoothctl show | grep -q \"PowerState: off\" && bluetoothctl power on || bluetoothctl power off",
     "tooltip-format-connected": "Devices connected: {num_connections}\n{device_enumerate}",
     "tooltip-format-on": "No devices connected",
@@ -109,7 +120,11 @@
     "cursor": false,
     "format": "{status_icon}",
     "tooltip-format": "{dynamic}",
-    "dynamic-order": ["title", "artist", "album"],
+    "dynamic-order": [
+      "title",
+      "artist",
+      "album"
+    ],
     "status-icons": {
       "playing": "󰏦",
       "paused": "󰐍",
@@ -135,14 +150,14 @@
     "thermal-zone": 9,
     "interval": 5,
     "tooltip": false,
-    "on-click": "xdg-terminal-exec --app-id=com.rwwiv.BTOP -e btop"
+    "on-click": "omarchy-launch-or-focus-tui btop"
   },
   "wireplumber#microphone": {
     "cursor": false,
     "format": "listen 󰍬",
     "format-muted": "muted  󰍮",
     "node-type": "Audio/Source",
-    "on-click": "xdg-terminal-exec --app-id=com.omarchy.Wiremix -e wiremix -v recording",
+    "on-click": "omarchy-launch-or-focus-tui wiremix -v recording",
     "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle",
     "scroll-step": 0,
     "tooltip-format": "{source_desc}"
@@ -151,12 +166,11 @@
     "cursor": false,
     "format": "{volume}% 󰥛",
     "format-muted": "muted 󰥛",
-    "on-click": "xdg-terminal-exec --app-id=com.omarchy.Wiremix -e wiremix",
+    "on-click": "omarchy-launch-or-focus-tui wiremix",
     "on-click-right": "pamixer -t",
     "scroll-step": 0,
     "tooltip-format": "{node_name}"
   },
-
   // ============================================
   // Idle Inhibitor
   // ============================================
@@ -170,7 +184,6 @@
       "deactivated": "󰄰"
     }
   },
-
   // ============================================
   // Tray & Expander
   // ============================================
@@ -179,7 +192,10 @@
       "click-to-reveal": true,
       "transition-duration": 200,
     },
-    "modules": ["custom/expand-icon", "tray"],
+    "modules": [
+      "custom/expand-icon",
+      "tray"
+    ],
     "orientation": "inherit"
   },
   "custom/expand-icon": {
@@ -190,7 +206,6 @@
     "icon-size": 12,
     "spacing": 17
   },
-
   // ============================================
   // Custom Modules
   // ============================================
