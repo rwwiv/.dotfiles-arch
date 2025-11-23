@@ -13,12 +13,10 @@ fi
 PATH="$PATH:$HOME/.local/bin"
 TIMEFMT=$'%J\n%U user\n%S system\n%P cpu\n%E total'
 
-# clone/source znap
 [[ -r $HOME/znap/znap/znap.zsh ]] ||
     git clone --depth 1 -- https://github.com/marlonrichert/zsh-snap.git $HOME/znap/znap
 source $HOME/znap/znap/znap.zsh
 
-# starship prompt
 if command -v starship &>/dev/null; then
   export STARSHIP_LOG="error"
   znap eval starship "starship init zsh"
@@ -28,10 +26,6 @@ fi
 if command -v thefuck &>/dev/null; then
   znap eval thefuck "thefuck --alias"
 fi
-
-# if command -v fzf &>/dev/null; then
-#   source <(fzf --zsh)
-# fi
 
 if command -v mise &>/dev/null; then
   znap eval mise "mise activate zsh"
@@ -52,6 +46,10 @@ fi
 
 if command -v zoxide &>/dev/null; then
   znap eval zoxide "zoxide init zsh --cmd cd"
+fi
+
+if command -v try &>/dev/null; then
+  znap eval try "/usr/bin/try init $HOME/scratch"
 fi
 
 [[ -r $HOME/.zsh/conf/rc.zsh ]] && source $HOME/.zsh/conf/rc.zsh

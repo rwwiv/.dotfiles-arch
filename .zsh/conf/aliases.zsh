@@ -6,10 +6,14 @@ if command -v eza &> /dev/null; then
   alias lta='lt -a'
 fi
 
-alias ff="fzf --preview 'bat --style=numbers --color=always {}'"
+if command -v fzf &> /dev/null; then
+  alias ff="fzf --preview 'bat --style=numbers --color=always {}'"
+fi
 
 if command -v lazygit &> /dev/null; then
   alias lg="lazygit"
+  # Yadm with lazygit
+  alias ylg='lazygit --git-dir ~/.local/share/yadm/repo.git --work-tree ~'
 fi
 
 if command -v lazydocker &> /dev/null; then
@@ -31,5 +35,7 @@ open () {
   xdg-open "$@" >/dev/null 2>&1 &
 }
 
-# Yadm with lazygit
-alias ylg='lazygit --git-dir ~/.local/share/yadm/repo.git --work-tree ~'
+if command -v nvim &>/dev/null; then
+  n() { if [ "$#" -eq 0 ]; then nvim .; else nvim "$@"; fi; }
+fi
+
