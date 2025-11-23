@@ -1,0 +1,14 @@
+[Unit]
+Description=Hand back fan control during sleep
+Before=sleep.target suspend.target hibernate.target hybrid-sleep.target
+StopWhenUnneeded=yes
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+ExecStart=/usr/bin/systemctl stop thinkfan
+
+ExecStop=/usr/bin/systemctl start thinkfan
+
+[Install]
+WantedBy=sleep.target suspend.target hibernate.target hybrid-sleep.target

@@ -1,0 +1,12 @@
+[Unit]
+Description=scx_bpfland scheduler
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/scx_bpfland -p
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
