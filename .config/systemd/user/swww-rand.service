@@ -1,0 +1,6 @@
+[Unit]
+Description=swww randomizer
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/swww-rand

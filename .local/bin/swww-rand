@@ -1,0 +1,12 @@
+#!/bin/bash
+
+WALLPAPER_DIR="$HOME/.config/omarchy/current/theme/backgrounds/"
+CURRENT_WALL="$HOME/.config/omarchy/current/background"
+
+if command -v swww &> /dev/null; then
+  NEW_WALL=$(find "$WALLPAPER_DIR" -type f ! -name "$(basename "$CURRENT_WALL")" | shuf -n 1)
+  ln -nsf "$NEW_WALL" "$CURRENT_WALL"
+  swww img "$NEW_WALL" --transition-type fade --transition-duration 1
+else
+  omarchy-theme-bg-next
+fi

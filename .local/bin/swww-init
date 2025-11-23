@@ -1,0 +1,44 @@
+#!/bin/bash
+
+
+apply_wallpaper() {
+  swww img ~/.config/omarchy/current/background --transition-type none
+}
+
+handle() {
+  case $1 in
+    monitoraddedv2) apply_wallpaper ;;
+  esac
+}
+
+if command -v swww &> /dev/null; then
+  swww-daemon &
+
+  wait_cnt=0
+  while ! swww query &>/dev/null; do
+    if [ $wait_cnt -gt 5 ]; then
+      echo "Failed to start swww"
+      exit 1
+    fi
+    sleep 0.1
+    wait_cnt=$((wait_cnt + 1))
+  done
+
+  apply_wallpaper
+
+  wait_cnt=0
+  while ! pgrep swaybg &>/dev/null; do
+    if [ $wait_cnt -gt 5 ]; then
+      echo "Failed to start swaybg"
+      exit 1
+    fi
+    sleep 0.1
+    wait_cnt=$((wait_cnt + 1))
+  done
+
+  pkill swaybg &>/dev/null
+
+  socat -U - UNIX-CONNECT:$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock | while read -r line; do handle "$line"; done
+else
+  swaybg -i ~/.config/omarchy/current/background -m fill
+fi

@@ -1,0 +1,10 @@
+[Unit]
+Description=Run swww-rand every 15 minutes
+
+[Timer]
+OnStartupSec=15m
+
+OnUnitActiveSec=15m
+
+[Install]
+WantedBy=timers.target

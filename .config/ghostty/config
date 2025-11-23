@@ -19,6 +19,7 @@ gtk-toolbar-style = flat
 # Cursor styling
 cursor-style = "bar"
 cursor-style-blink = true
+adjust-cursor-thickness = 2
 
 # Keyboard bindings
 keybind = shift+insert=paste_from_clipboard

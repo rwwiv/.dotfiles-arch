@@ -27,3 +27,5 @@
 
 # Backup directories
 dotfiles-backup-*/
+
+*wants/
