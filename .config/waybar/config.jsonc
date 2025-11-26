@@ -5,7 +5,7 @@
   //"output": [],
   "spacing": 0,
   "height": 32,
-  "margin": "10px 10px 0 10px",
+  "margin": "8px 8px 0 8px",
   "modules-left": [
     "custom/omarchy",
     "hyprland/workspaces"
@@ -148,8 +148,8 @@
   "temperature#cpu": {
     "cursor": false,
     "format": "{temperatureC}°C 󰔐",
-    "thermal-zone": 9,
     "interval": 5,
+    "hwmon-path": "/sys/devices/platform/thinkpad_hwmon/hwmon/hwmon5/temp1_input",
     "tooltip": false,
     "on-click": "omarchy-launch-or-focus-tui btop"
   },
