@@ -24,3 +24,44 @@ timeshell() {
 
   for _ in $(seq 1 10); do /usr/bin/time "$shell" -i -c exit; done
 }
+
+if command -v clamdscan &>/dev/null; then
+  # Optimized ClamAV Scan Function
+  # Usage: "scan ." (current dir) or "scan /path/to/folder"
+  scan() {
+      # 1. Set up the Quarantine Folder (safely)
+      local QUARANTINE="$HOME/.clamav/quarantine"
+      mkdir -p "$QUARANTINE"
+
+      # 2. Define the target (default to current directory if no arg provided)
+      local TARGET="${1:-.}"
+
+      echo "🛡️  Scanning: $TARGET"
+      echo "📦 Quarantine: $QUARANTINE"
+
+      # 3. Run clamdscan (The fast client)
+      # --multiscan: Uses all threads (Crucial for your Core Ultra 7)
+      # --fdpass:    Fixes permission errors (passes file access to the daemon user)
+      # --move:      Moves viruses instead of deleting them (Safety net)
+      # --quiet:     Only output errors/viruses (Clean terminal)
+      
+      sudo clamdscan \
+          --multiscan \
+          --fdpass \
+          --move="$QUARANTINE" \
+          --quiet \
+          "$TARGET"
+
+      # 4. Check the exit code for the notification
+      local STATUS=$?
+      if [ $STATUS -eq 0 ]; then
+          echo "✅ Scan Clean."
+          notify-send "ClamAV" "Scan Clean: No threats found." -i security-high
+      elif [ $STATUS -eq 1 ]; then
+          echo "🚨 THREAT FOUND. check $QUARANTINE"
+          notify-send "ClamAV" "🚨 THREAT FOUND. Moved to Quarantine." -u critical
+      else
+          echo "⚠️  Scan Error."
+      fi
+  }
+fi
