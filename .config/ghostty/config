@@ -38,6 +38,3 @@ command = /usr/bin/zsh
 
 # Misc
 clipboard-trim-trailing-spaces = true
-
-# Slowdown mouse scrolling
-mouse-scroll-multiplier = 0.95

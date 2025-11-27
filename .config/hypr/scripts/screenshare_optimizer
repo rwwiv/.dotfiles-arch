@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+# @systemd
+import sys
+import os
+from typing import List
+
+# Ensure we can find the library
+sys.path.append(os.path.expanduser("~/.config/hypr/scripts/lib"))
+
+from hyprland_ipc import Hyprland
+
+# Initialize Library
+h = Hyprland()
+
+# --- CONFIGURATION ---
+
+# Commands to run when screen sharing STARTS (Max Performance)
+PERFORMANCE_COMMANDS: List[str] = [
+    "keyword decoration:blur:enabled 0",           # No blur
+    "keyword animations:enabled 0",                # No animations (smoother stream)
+    "keyword decoration:drop_shadow 0",            # No shadows
+    "keyword decoration:active_opacity 1.0",       # No transparency
+    "keyword decoration:inactive_opacity 1.0",     # No transparency
+    "keyword misc:vfr 0"                           # Optional: Force constant frame rate (helps some encoders)
+]
+
+# Commands to run when screen sharing STOPS (Restore Aesthetics)
+# NOTE: Update values to match your hyprland.conf!
+RESTORE_COMMANDS: List[str] = [
+    "keyword decoration:blur:enabled 1",
+    "keyword animations:enabled 1",
+    "keyword decoration:drop_shadow 1",
+    "keyword decoration:active_opacity 1.0",       # Example: active opaque
+    "keyword decoration:inactive_opacity 0.9",     # Example: inactive dimmed
+    "keyword misc:vfr 1"                           # Back to Variable Frame Rate (saves battery)
+]
+
+@h.on("screencast")
+async def handle_screencast(ctx: Hyprland, data: str) -> None:
+    """
+    Handles the 'screencast' event.
+    data: "1" (started) or "0" (ended)
+    """
+    state: int = int(data)
+    
+    if state == 1:
+        print("[ScreenShare] Started: Engaging Performance Mode")
+        await ctx.batch(PERFORMANCE_COMMANDS)
+        # Optional: Visual indicator via notification
+        await ctx.command("dispatch exec notify-send -u low 'Screen Share' 'Performance optimizations enabled'")
+        
+    else:
+        print("[ScreenShare] Stopped: Restoring Aesthetics")
+        await ctx.batch(RESTORE_COMMANDS)
+        await ctx.command("dispatch exec notify-send -u low 'Screen Share' 'Visual effects restored'")
+
+if __name__ == "__main__":
+    h.run()

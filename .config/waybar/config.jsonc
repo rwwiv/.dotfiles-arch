@@ -244,15 +244,15 @@
     "return-type": "json",
     "exec": "mako-indicator",
     "on-click": "dnd-toggle",
-    "interval": 1,
+    "interval": 3600,
+    "signal": 8,
   },
   "custom/vpn": {
     "cursor": false,
     "format": "{}",
     "return-type": "json",
-    "exec": "vpn-indicator",
+    "exec": "tailscale-indicator",
     "on-click": "tailscale-webui",
     "on-click-right": "tailscale-toggle",
-    "interval": 5,
   }
 }

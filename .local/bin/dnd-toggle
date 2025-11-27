@@ -7,3 +7,5 @@ if makoctl mode | grep -q 'do-not-disturb'; then
 else
     pw-metadata -n default 0 dnd-mode false
 fi
+
+pkill -SIGRTMIN+8 waybar

@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# TODO: add notification indicator (󰅸) in normal mode
-
 icon=""
 tooltip=""
 class=""

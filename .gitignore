@@ -29,3 +29,7 @@
 dotfiles-backup-*/
 
 *wants/
+
+.local/bin/claude
+
+**/__pycache__/

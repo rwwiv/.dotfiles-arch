@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+
+SCRIPTS_DIR="$HOME/.config/hypr/scripts"
+SYSTEMD_DIR="$HOME/.config/systemd/user"
+MAGIC_STRING="@systemd"
+
+mkdir -p "$SYSTEMD_DIR"
+
+echo "Syncing Hyprland services..."
+
+# Iterate all files (no extension restriction)
+for script in "$SCRIPTS_DIR"/*; do
+    # Skip directories or non-files
+    [ -f "$script" ] || continue
+
+    # Check for magic string
+    if ! grep -aq "$MAGIC_STRING" "$script"; then
+        continue
+    fi
+
+    filename=$(basename "$script")
+    # Clean service name: replace underscores with dashes, strip extension if present
+    servicename="${filename%.*}.service"
+    servicefile="$SYSTEMD_DIR/$servicename"
+
+    echo "  [SYNC] $filename -> $servicename"
+
+    # 1. Enforce executable permission automatically
+    chmod +x "$script"
+
+    # 2. Write unit file (Executes script directly)
+    cat > "$servicefile" <<EOF
+[Unit]
+Description=Hyprland Automation: $filename
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+ExecStart=$script
+Restart=always
+RestartSec=3
+Environment="PYTHONUNBUFFERED=1"
+
+[Install]
+WantedBy=graphical-session.target
+EOF
+
+    systemctl --user daemon-reload
+    
+    if ! systemctl --user is-active --quiet "$servicename"; then
+        systemctl --user enable --now "$servicename"
+        echo "    -> Started"
+    else
+        echo "    -> Already running"
+    fi
+done

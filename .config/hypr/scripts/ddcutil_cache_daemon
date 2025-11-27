@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+# @systemd
+import asyncio
+import sys
+import os
+import subprocess
+
+sys.path.append(os.path.expanduser("~/.config/hypr/scripts/lib"))
+from hyprland_ipc import Hyprland
+
+h = Hyprland()
+
+# Timer task reference
+debounce_task = None
+
+async def run_heavy_detect():
+    print("[DDC] Settled. Running detection...")
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "ddcutil-client", "detect",
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL
+        )
+        await proc.wait()
+        print("[DDC] Detection complete.")
+    except Exception as e:
+        print(f"[DDC] Failed: {e}")
+
+@h.on("monitoraddedv2")
+async def schedule_refresh(ctx: Hyprland, data: str) -> None:
+    global debounce_task
+    print(f"[DDC] Monitor event ({data}). Debouncing...")
+    
+    # If a timer is already running, cancel it (reset the clock)
+    if debounce_task:
+        debounce_task.cancel()
+    
+    # Schedule the heavy task to run in 3 seconds if no new events come in
+    debounce_task = asyncio.create_task(wait_and_run())
+
+async def wait_and_run():
+    try:
+        await asyncio.sleep(3.0) # Wait for Hyprland/Hardware to calm down
+        await run_heavy_detect()
+    except asyncio.CancelledError:
+        # Task was cancelled because a new event came in
+        pass
+
+if __name__ == "__main__":
+    h.run()

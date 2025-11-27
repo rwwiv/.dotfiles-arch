@@ -1,89 +1,119 @@
-#!/usr/bin/zsh
+#!/usr/bin/env python3
+import sys
+import json
+import subprocess
+import re
+from typing import Tuple, Optional
 
-SERVICE='com.ddcutil.DdcutilService'
-OBJECT='/com/ddcutil/DdcutilObject'
-INTERFACE='com.ddcutil.DdcutilInterface'
+def get_focused_monitor() -> Tuple[str, str]:
+    """Returns (name, model) of the focused monitor."""
+    try:
+        out = subprocess.check_output(["hyprctl", "monitors", "-j"])
+        monitors = json.loads(out)
+        for m in monitors:
+            if m["focused"]:
+                return m["name"], m["model"]
+    except Exception:
+        sys.exit(1)
+    return "", ""
 
-# Parse argument (+int or -int)
-if [[ -z "$1" || ! "$1" =~ ^[+-][0-9]+$ ]]; then
-    echo "Usage: $(basename "$0") <+int|-int>"
-    echo "Example: $(basename "$0") +10 or $(basename "$0") -5"
-    exit 1
-fi
+def get_ddc_display(target_model: str) -> Optional[str]:
+    """Finds ddcutil display number by matching product name to model."""
+    try:
+        out = subprocess.check_output(["ddcutil-client", "list"], text=True)
+        current_disp = None
+        
+        for line in out.splitlines():
+            line = line.strip()
+            if line.startswith("display:"):
+                # "display: 1" -> "1"
+                current_disp = line.split(":", 1)[1].strip()
+            elif line.startswith("product_name:"):
+                p_name = line.split(":", 1)[1].strip()
+                # Fuzzy match because EDID strings are messy
+                # e.g. "LG HDR 4K" in "LG HDR 4K"
+                if target_model in p_name or p_name in target_model:
+                    return current_disp
+    except Exception:
+        pass
+    return None
 
-adjustment=$1
+def set_internal_brightness(delta: str, monitor_name: str) -> None:
+    """Pass-through for internal laptop displays."""
+    subprocess.run(["swayosd-client", "--brightness", delta, "--monitor", monitor_name])
 
-# Get hyprctl monitors JSON output and cache it
-monitors_json=$(hyprctl monitors -j)
+def set_external_brightness(delta_int: int, display_id: str, monitor_name: str) -> None:
+    """Handles logic for DDC monitors."""
+    try:
+        # Get Current (VCP 10)
+        # Output ex: "VCP 10 C 50 100" (code type current max)
+        out = subprocess.check_output(
+            ["ddcutil-client", "-d", display_id, "getvcp", "10"], 
+            text=True
+        )
+        
+        # Parse current and max
+        curr_match = re.search(r"vcp_current_value:\s+(\d+)", out)
+        max_match = re.search(r"vcp_max_value:\s+(\d+)", out)
+        
+        if not curr_match: return
 
-# Extract focused monitor's model and name
-focused_model=$(echo "$monitors_json" | jq -r '.[] | select(.focused == true).model')
-focused_name=$(echo "$monitors_json" | jq -r '.[] | select(.focused == true).name')
+        current = int(curr_match.group(1))
+        maximum = int(max_match.group(1)) if max_match else 100
+        
+        # Calculate new
+        new_val = max(0, min(maximum, current + delta_int))
+        
+        if new_val == current: return
 
-if [[ -z "$focused_model" ]]; then
-    echo "Error: Could not determine focused monitor"
-    exit 1
-fi
+        # Set Value
+        subprocess.run(
+            ["ddcutil-client", "-d", display_id, "setvcp", "10", str(new_val)],
+            check=True
+        )
 
-# Get ddcutil-client list of external displays
-ddcutil_list=$(ddcutil-client list)
+        # Update OSD (using custom values since swayosd can't read DDC)
+        progress = new_val / maximum
+        percentage = int(progress * 100)
+        subprocess.run([
+            "swayosd-client",
+            "--custom-icon", "display-brightness-symbolic",
+            "--custom-progress", f"{progress:.2f}",
+            "--custom-progress-text", f"{percentage}%",
+            "--monitor", monitor_name
+        ])
+        
+    except Exception as e:
+        print(f"DDC Error: {e}")
 
-# Parse the list to find matching product_name
-# Extract product_name values and their display numbers
-display_num=""
-while IFS= read -r line; do
-    if [[ "$line" =~ ^display:\ ([0-9]+) ]]; then
-        current_display="${match[1]}"
-    elif [[ "$line" =~ product_name:\ (.+)$ ]]; then
-        product_name="${match[1]}"
-        # Trim whitespace
-        product_name=$(echo "$product_name" | xargs)
+def main():
+    if len(sys.argv) < 2:
+        print("Usage: ddc_brightness.py [+|-]VAL")
+        sys.exit(1)
 
-        if [[ "$product_name" == "$focused_model" ]]; then
-            display_num="$current_display"
-            break
-        fi
-    fi
-done <<< "$ddcutil_list"
+    delta_str = sys.argv[1]
+    try:
+        delta_int = int(delta_str)
+    except ValueError:
+        sys.exit(1)
 
-# Check if we found a matching external display
-if [[ -n "$display_num" ]]; then
-    # External monitor - use ddcutil-client
+    name, model = get_focused_monitor()
+    
+    # Internal detection strategy:
+    # 1. Check if name starts with eDP (standard)
+    # 2. Or if ddcutil can't find a match, fallback to internal method? 
+    # Let's stick to explicit eDP check for safety, or you can add your laptop model here.
+    if name.startswith("eDP") or name.startswith("LVDS"):
+        set_internal_brightness(delta_str, name)
+    else:
+        # Try to find DDC display
+        ddc_id = get_ddc_display(model)
+        if ddc_id:
+            set_external_brightness(delta_int, ddc_id, name)
+        else:
+            # Fallback: Maybe it's an external without DDC support?
+            # Try swayosd anyway, maybe it supports ddcci-driver if you fix it later
+            set_internal_brightness(delta_str, name)
 
-    # Get current brightness and max value
-    vcp_output=$(ddcutil-client -d "$display_num" getvcp 0x10)
-    current=$(echo "$vcp_output" | awk '/vcp_current_value:/ {print $2}')
-    max=$(echo "$vcp_output" | awk '/vcp_max_value:/ {print $2}')
-
-    if [[ -z "$current" || -z "$max" ]]; then
-        echo "Error: Could not read current brightness"
-        exit 1
-    fi
-
-    # Calculate new brightness value
-    new_value=$((current + adjustment))
-
-    # Clamp to 0 and max
-    if (( new_value < 0 )); then
-        new_value=0
-    elif (( new_value > max )); then
-        new_value=$max
-    fi
-
-    # Set the new brightness value via ddcutil
-    ddcutil-client -d "$display_num" setvcp 0x10 "$new_value" &> /dev/null
-
-    # Calculate progress for custom OSD (0.0 to 1.0)
-    progress=$(awk "BEGIN {printf \"%.2f\", $new_value / $max}")
-    percentage=$((new_value * 100 / max))
-
-    # Show custom OSD without adjusting any monitor brightness
-    swayosd-client --custom-icon "display-brightness-symbolic" \
-                   --custom-progress "$progress" \
-                   --custom-progress-text "${percentage}%" \
-                   --monitor "$focused_name"
-
-else
-    # Internal monitor - let swayosd-client handle both OSD and brightness change
-    swayosd-client --brightness "$adjustment" --monitor "$focused_name"
-fi
+if __name__ == "__main__":
+    main()

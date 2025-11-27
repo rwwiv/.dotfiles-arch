@@ -1,50 +1,113 @@
-#!/bin/bash
+#!/usr/bin/env python3
+import asyncio
+import sys
+import os
+import subprocess
+import signal
+from typing import NoReturn
 
-WALLPAPER="$HOME/.config/omarchy/current/background"
+# Expand path for library
+sys.path.append(os.path.expanduser("~/.config/hypr/scripts/lib"))
+from hyprland_ipc import Hyprland
 
-apply_wallpaper() {
-  swww img "$WALLPAPER" --transition-type none
-}
+# Config
+WALLPAPER_PATH = os.path.expanduser("~/.config/omarchy/current/background")
+SWAYBG_TIMEOUT = 10 
 
-handle() {
-  case $1 in
-    monitoraddedv2) apply_wallpaper ;;
-  esac
-}
+h = Hyprland()
 
-use_swaybg() {
-  swaybg -i "$WALLPAPER" -m fill
-}
+async def hunt_swaybg() -> None:
+    """Aggressively hunts swaybg for a few seconds to prevent conflict."""
+    end_time = asyncio.get_running_loop().time() + SWAYBG_TIMEOUT
+    while asyncio.get_running_loop().time() < end_time:
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                "pkill", "-9", "swaybg",
+                stdout=asyncio.subprocess.DEVNULL,
+                stderr=asyncio.subprocess.DEVNULL
+            )
+            await proc.wait()
+        except Exception:
+            pass
+        await asyncio.sleep(0.5)
 
-if command -v swww &> /dev/null; then
-  swww-daemon &
+async def init_swww() -> None:
+    """Ensures daemon is running. If started here, it survives this script (orphaned intentional)."""
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "pgrep", "-x", "swww-daemon",
+            stdout=asyncio.subprocess.DEVNULL
+        )
+        await proc.wait()
 
-  wait_cnt=0
-  while ! swww query &>/dev/null; do
-    if [ $wait_cnt -gt 50 ]; then
-      echo "Failed to start swww"
-      use_swaybg
-      exit 1
-    fi
-    sleep 0.1
-    wait_cnt=$((wait_cnt + 1))
-  done
+        if proc.returncode != 0:
+            # Popen spawns it as a detached process relative to asyncio loop
+            subprocess.Popen(
+                ["swww-daemon"], 
+                stdout=subprocess.DEVNULL, 
+                stderr=subprocess.DEVNULL
+            )
+            await asyncio.sleep(1.0)
+    except Exception:
+        pass
 
-  apply_wallpaper
+async def set_wallpaper() -> None:
+    if not os.path.exists(WALLPAPER_PATH):
+        return
 
-  wait_cnt=0
-  while ! pgrep swaybg &>/dev/null; do
-    if [ $wait_cnt -gt 50 ]; then
-      echo "swaybg not running"
-      break
-    fi
-    sleep 0.1
-    wait_cnt=$((wait_cnt + 1))
-  done
+    try:
+        # Fire and forget
+        subprocess.Popen(
+            ["swww", "img", WALLPAPER_PATH, "--transition-type", "none"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+    except Exception:
+        pass
 
-  pkill swaybg &>/dev/null
+# Add to global scope
+wallpaper_task = None
 
-  socat -U - UNIX-CONNECT:$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock | while read -r line; do handle "$line"; done
-else
-  use_swaybg
-fi
+async def delayed_paint():
+    try:
+        await asyncio.sleep(1.0) # Wait 1s for displays to align
+        await set_wallpaper()
+    except asyncio.CancelledError:
+        pass
+
+@h.on("monitoraddedv2")
+async def handle_monitor_hotplug(ctx: Hyprland, data: str) -> None:
+    global wallpaper_task
+    if wallpaper_task:
+        wallpaper_task.cancel()
+    wallpaper_task = asyncio.create_task(delayed_paint())
+
+async def shutdown(signal_loop):
+    """Cleanup tasks on SIGTERM"""
+    tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+    [task.cancel() for task in tasks]
+    await asyncio.gather(*tasks, return_exceptions=True)
+    signal_loop.stop()
+
+def main() -> None:
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    # Handle Hyprland kill signal (SIGTERM)
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        loop.add_signal_handler(sig, lambda: asyncio.create_task(shutdown(loop)))
+
+    try:
+        loop.create_task(hunt_swaybg())
+        loop.run_until_complete(init_swww())
+        loop.run_until_complete(set_wallpaper())
+        
+        # Start IPC listener
+        loop.run_until_complete(h._listen())
+    except asyncio.CancelledError:
+        pass
+    finally:
+        loop.close()
+
+if __name__ == "__main__":
+    main()
