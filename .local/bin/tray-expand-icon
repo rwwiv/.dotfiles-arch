@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# Function to check the tray and output JSON
+check_tray() {
+    entries=$(busctl --user get-property org.kde.StatusNotifierWatcher /StatusNotifierWatcher org.kde.StatusNotifierWatcher RegisteredStatusNotifierItems 2>/dev/null)
+    
+    if [[ "$entries" == *"as 0"* ]] || [[ -z "$entries" ]]; then
+        echo '{"text": "", "tooltip": ""}'
+    else
+        echo '{"text": "...", "tooltip": "Show Tray"}'
+    fi
+}
+
+# 1. Run immediately on start so the bar isn't empty while waiting for the first event
+check_tray
+
+# 2. Start monitoring DBus for Register/Unregister events
+# --line-buffered is critical so grep passes the trigger immediately
+busctl --user monitor org.kde.StatusNotifierWatcher --json=short | \
+grep --line-buffered -E "StatusNotifierItemRegistered|StatusNotifierItemUnregistered" | \
+while read -r _; do
+    # When an event is detected, re-run the check
+    check_tray
+done

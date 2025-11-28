@@ -7,9 +7,20 @@ set page-padding 1
 map b toggle_statusbar
 
 # Hide statusbar by default:
-set guioptions none
+# set guioptions none
 
-# Recolor (dark mode) - uncomment if desired:
-# set recolor true
-# set recolor-lightcolor "#000000"
-# set recolor-darkcolor "#E0E0E0"
+set selection-clipboard clipboard
+# set sandbox none
+# set page-padding 1
+
+# Kanagawa Recolor
+set recolor "true"
+set recolor-lightcolor "#1f1f28"  # Sumi Ink 1 (Background)
+set recolor-darkcolor "#dcd7ba"   # Fuji White (Text)
+set default-bg "#1f1f28"
+
+# UI Colors
+set statusbar-bg "#16161d"
+set statusbar-fg "#dcd7ba"
+set inputbar-bg "#16161d"
+set inputbar-fg "#dcd7ba"

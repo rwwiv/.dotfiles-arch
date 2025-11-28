@@ -1,5 +1,6 @@
 [include]
-path = ~/.dotfiles/git/.gitconfig
+  path = ~/.local/.gitconfig
+  path = ~/.config/delta/themes.gitconfig
 [filter "lfs"]
 	clean = git-lfs clean -- %f
 	smudge = git-lfs smudge -- %f

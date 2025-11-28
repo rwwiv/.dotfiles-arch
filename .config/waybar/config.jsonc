@@ -4,6 +4,7 @@
   "position": "top",
   //"output": [],
   "spacing": 0,
+  "mode": "dock",
   "height": 32,
   "margin": "8px 8px 0 8px",
   "modules-left": [
@@ -200,13 +201,18 @@
     "orientation": "inherit"
   },
   "custom/expand-icon": {
-    "format": "...",
+    "exec": "tray-expand-icon",
+    "return-type": "json",
     "tooltip": false
   },
   "tray": {
     "icon-size": 12,
     "spacing": 17,
     "show-passive-items": true,
+    "ignore": [
+      "1password",
+      "1Password",
+    ]
   },
   // ============================================
   // Custom Modules
@@ -240,7 +246,6 @@
   },
   "custom/dnd": {
     "cursor": false,
-    "format": "{}",
     "return-type": "json",
     "exec": "mako-indicator",
     "on-click": "dnd-toggle",
@@ -249,7 +254,6 @@
   },
   "custom/vpn": {
     "cursor": false,
-    "format": "{}",
     "return-type": "json",
     "exec": "tailscale-indicator",
     "on-click": "tailscale-webui",

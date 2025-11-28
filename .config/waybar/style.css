@@ -87,7 +87,8 @@
 #wireplumber,
 #idle_inhibitor,
 #custom-dnd,
-#custom-vpn {
+#custom-vpn,
+#custom-1password {
   background-color: @button-background;
   border: 1px solid shade(@background, 0.8);
   margin: 6px 3px;
@@ -103,7 +104,8 @@
 #network:hover,
 #wireplumber:hover,
 #custom-dnd:hover,
-#custom-vpn:hover {
+#custom-vpn:hover,
+#custom-1password:hover {
   color: shade(@foreground, 1.05);
   background-color: shade(@button-background, 1.1);
 }

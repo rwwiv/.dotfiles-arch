@@ -31,11 +31,20 @@ if command -v harlequin &>/dev/null; then
   alias hqs="harlequin -a sqlite"
 fi
 
+if command -v nvim &>/dev/null; then
+  n() { if [ "$#" -eq 0 ]; then nvim .; else nvim "$@"; fi; }
+fi
+
+if command -v rg &>/dev/null; then
+  alias grep="rg --no-ignore --hidden"
+fi
+
+if command -v fd &>/dev/null; then
+  alias find="fd --no-ignore --hidden"
+fi
+
 open () {
   xdg-open "$@" >/dev/null 2>&1 &
 }
 
-if command -v nvim &>/dev/null; then
-  n() { if [ "$#" -eq 0 ]; then nvim .; else nvim "$@"; fi; }
-fi
 

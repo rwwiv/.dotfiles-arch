@@ -1,0 +1,5 @@
+#!/bin/bash
+# This wrapper opens yazi, waits for selection, and prints the path
+# $1 is the output file path termfilechooser expects
+
+yazi --chooser-file="$1"

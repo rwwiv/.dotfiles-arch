@@ -1,0 +1,28 @@
+[delta]
+  # 1. UI: Minimal (No boxes, no heavy borders)
+  file-style = "gold bold"
+  file-decoration-style = none  # Removes the box around file names
+  
+  hunk-header-style = file line-number syntax
+  hunk-header-decoration-style = none # Removes the box around code blocks
+  
+  # 2. Syntax: Use your terminal's Kanagawa colors
+  # 'ansi' prevents delta from applying its own arbitrary color themes
+  syntax-theme = ansi
+  
+  # 3. Diff Colors (Kanagawa Specifics)
+  # Using simple background highlights instead of heavy coloring
+  # Winter Red background for delete
+  minus-style = normal "#43242b" 
+  # Winter Green background for add
+  plus-style = normal "#2b3328"  
+
+  # Text colors inside the diffs (Explicitly override if needed, or leave 'normal')
+  minus-emph-style = normal "#5a2c33"
+  plus-emph-style = normal "#384b35"
+
+  # Line Numbers (Subtle)
+  line-numbers = true
+  line-numbers-zero-style = "#54546d" # Sumi Ink 4
+  line-numbers-left-style = "#727169" # Fuji Gray
+  line-numbers-right-style = "#727169"
