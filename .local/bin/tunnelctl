@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env bash
 
 # TODO: add a json output for waybar
 
@@ -14,7 +14,7 @@
 #   tunnelctl status postgres
 #   tunnelctl down postgres
 
-: ${SSH_TUNNEL_PIDDIR:="$HOME/.cache/ssh-tunnels"}
+: "${SSH_TUNNEL_PIDDIR:=$HOME/.cache/ssh-tunnels}"
 
 _tunnel_pidfile() {
   local name=$1
@@ -49,12 +49,12 @@ _tunnel_up() {
       return 1
     fi
 
-    local metafile=$(_tunnel_metafile "$name")
+    local metafile
+    metafile=$(_tunnel_metafile "$name")
     local default_host="" default_local_port="" default_remote_port=""
 
     # If we have previous metadata for this tunnel, use it as defaults
     if [[ -f "$metafile" ]]; then
-      local m_host m_local_port m_remote_port
       # shellcheck disable=SC1090
       source "$metafile"
       [[ -n "$host" ]] && default_host="$host"
@@ -71,8 +71,10 @@ _tunnel_up() {
     [[ -z "$remote_port" ]] && remote_port="$default_remote_port"
   fi
 
-  local pidfile=$(_tunnel_pidfile "$name")
-  local metafile=$(_tunnel_metafile "$name")
+  local pidfile
+  pidfile=$(_tunnel_pidfile "$name")
+  local metafile
+  metafile=$(_tunnel_metafile "$name")
 
   # If already running, don't start another
   if [[ -f "$pidfile" ]]; then
@@ -105,8 +107,8 @@ _tunnel_up() {
 
   echo "tunnel '$name': starting (localhost:$local_port → $host:$remote_port)"
 
-  # Suppress job-control noise just inside this function
-  setopt localoptions nomonitor
+  # Suppress job-control noise just inside this function (Bash: set +m)
+  set +m
 
   # Start SSH tunnel in the background
   ssh -N \
@@ -138,16 +140,18 @@ _tunnel_down() {
   fi
 
   local name=$1
-  local pidfile=$(_tunnel_pidfile "$name")
-  local metafile=$(_tunnel_metafile "$name")
+  local pidfile
+  pidfile=$(_tunnel_pidfile "$name")
+  local metafile
+  metafile=$(_tunnel_metafile "$name")
 
   if [[ ! -f "$pidfile" ]]; then
     echo "tunnel '$name': no pidfile, nothing to stop"
     return 1
   fi
 
-  # prevent zsh from printing "[N] + terminated …"
-  setopt localoptions nomonitor
+  # prevent bash from printing "[N] + terminated …"
+  set +m
 
   local pid
   pid="$(<"$pidfile")"
@@ -170,8 +174,10 @@ _tunnel_status() {
   # Single tunnel status
   if (( $# == 1 )); then
     local name=$1
-    local pidfile=$(_tunnel_pidfile "$name")
-    local metafile=$(_tunnel_metafile "$name")
+    local pidfile
+    pidfile=$(_tunnel_pidfile "$name")
+    local metafile
+    metafile=$(_tunnel_metafile "$name")
 
     if [[ ! -f "$pidfile" ]]; then
       echo "tunnel '$name': not running (no pidfile)"
@@ -202,9 +208,15 @@ _tunnel_status() {
 
   # List all tunnels
   echo "Known tunnels in $SSH_TUNNEL_PIDDIR:"
-  for f in "$SSH_TUNNEL_PIDDIR"/*.pid(N); do
+  
+  # Enable nullglob to handle empty directory
+  shopt -s nullglob
+  for f in "$SSH_TUNNEL_PIDDIR"/*.pid; do
     local name pid host="" local_port="" remote_port="" metafile
-    name="${f:t:r}"
+    
+    # Bash: basename without extension
+    name=$(basename "$f" .pid)
+    
     pid="$(<"$f")"
     metafile=$(_tunnel_metafile "$name")
     if [[ -f "$metafile" ]]; then
@@ -222,6 +234,7 @@ _tunnel_status() {
       echo "  $name: stale (pid $pid)"
     fi
   done
+  shopt -u nullglob
 }
 
 # Main command handler
@@ -250,7 +263,7 @@ Usage:
   tunnelctl down <name>
   tunnelctl status [<name>]
 EOF
-    ;;
+    ;;  
   *)
     echo "tunnelctl: unknown command '$cmd' (expected up|down|status)" >&2
     exit 1

@@ -1,0 +1,3 @@
+[linux]
+arch_package_manager = "paru"
+show_arch_news = true

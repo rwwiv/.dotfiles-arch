@@ -1,0 +1,2 @@
+[commands]
+"Notify Done" = "notify-send 'System Update' 'Topgrade finished successfully' -i software-update-available"

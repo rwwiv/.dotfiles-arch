@@ -41,7 +41,7 @@ else
 
         if [[ "$current_value" == "["* ]]; then
             # It's an array, parse it
-            exclusions=($(echo "$current_value" | jq -r '.[]' | sed 's/^!//' ))
+            mapfile -t exclusions < <(echo "$current_value" | jq -r '.[]' | sed 's/^!//')
         else
             # It's a single string
             single_val=$(echo "$current_value" | tr -d '"' | sed 's/^!//')
@@ -53,8 +53,15 @@ else
         fi
     fi
 
-    # Check if focused monitor is in exclusion list
-    if [[ " ${exclusions[@]} " =~ " ${focused_monitor} " ]]; then
+    found=false
+    for mon in "${exclusions[@]}"; do
+        if [[ "$mon" == "$focused_monitor" ]]; then
+            found=true
+            break
+        fi
+    done
+
+    if [[ "$found" == true ]]; then
         # Remove from exclusions (show on this monitor)
         new_exclusions=()
         for mon in "${exclusions[@]}"; do

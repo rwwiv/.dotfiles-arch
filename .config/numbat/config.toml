@@ -1,0 +1,7 @@
+intro-banner = "off"
+prompt = ">>> "
+pretty-print = "never"
+color = "auto"
+
+[exchange-rates]
+fetching-policy = "on-first-use"

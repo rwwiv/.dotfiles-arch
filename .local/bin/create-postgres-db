@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env bash
 
 # Create PostgreSQL database with user and password
 # Usage: create-postgres-db <user> <pass> [db]

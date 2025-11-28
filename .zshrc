@@ -23,6 +23,8 @@ if command -v starship &>/dev/null; then
   znap prompt
 fi
 
+source /usr/share/doc/pkgfile/command-not-found.zsh
+
 if command -v thefuck &>/dev/null; then
   znap eval thefuck "thefuck --alias"
 fi

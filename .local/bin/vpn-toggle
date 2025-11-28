@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+
+# Combined VPN Toggle
+# Turns OFF active VPN, or turns ON last used VPN.
+
+WG_IFACE="wg0"
+WG_CONF_DIR="$HOME/.config/wireguard"
+WG_SYMLINK="$WG_CONF_DIR/wg0.conf"
+CACHE_FILE="$HOME/.cache/vpn-last-used"
+
+
+# Tailscale
+if tailscale status --json 2>/dev/null | grep -q '"BackendState".*:.*"Running"'; then
+    echo "tailscale" > "$CACHE_FILE"
+    tailscale down >/dev/null 2>&1
+    exit 0
+fi
+
+# WireGuard
+# Check if interface exists
+if ip link show "$WG_IFACE" >/dev/null 2>&1; then
+    # Check if it is UP
+    if ip link show "$WG_IFACE" | grep -q "UP"; then
+        echo "wireguard" > "$CACHE_FILE"
+        sudo wg-quick down "$WG_SYMLINK" >/dev/null 2>&1
+        exit 0
+    fi
+fi
+
+# 2. No Active VPN -> Connect Last Used
+if [ -f "$CACHE_FILE" ]; then
+    LAST=$(cat "$CACHE_FILE")
+    
+    case "$LAST" in
+        "tailscale")
+            tailscale up >/dev/null 2>&1
+            ;;
+        "wireguard")
+            # Cleanup: If wg0 exists but wasn't detected as UP above,
+            # we must remove it before starting to avoid "already exists" error.
+            if ip link show "$WG_IFACE" >/dev/null 2>&1; then
+                 # Try clean shutdown first
+                 sudo wg-quick down "$WG_SYMLINK" >/dev/null 2>&1
+            fi
+            
+            sudo wg-quick up "$WG_SYMLINK" >/dev/null 2>&1
+            ;;
+        *)
+            notify-send "VPN Toggle" "Unknown last state. Please use picker."
+            ;;
+    esac
+else
+    notify-send "VPN Toggle" "No last used VPN found. Use the picker."
+fi

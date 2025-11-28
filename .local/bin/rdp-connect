@@ -114,7 +114,7 @@ if [[ "$PROFILE_LOADED" == true ]]; then
         [[ "$NETWORK" != "none" ]] && CMD+=(/network:"$NETWORK")
         
         if [[ -n "$SHARE_NAME" && -n "$SHARE_PATH" ]]; then
-            CMD+=(/drive:"$SHARE_NAME","$SHARE_PATH")
+            CMD+=("/drive:$SHARE_NAME,$SHARE_PATH")
         fi
         
         exec "${CMD[@]}" &>/dev/null
@@ -214,7 +214,7 @@ CMD=(sdl-freerdp3 /v:"$SERVER" /u:"$USER" /f /scale:100)
 [[ "$NETWORK" != "none" ]] && CMD+=(/network:"$NETWORK")
 
 if [[ -n "$SHARE_NAME" && -n "$SHARE_PATH" ]]; then
-    CMD+=(/drive:"$SHARE_NAME","$SHARE_PATH")
+    CMD+=("/drive:$SHARE_NAME,$SHARE_PATH")
 fi
 
 # Show command and confirm

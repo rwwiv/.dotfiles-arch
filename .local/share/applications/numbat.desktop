@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Numbat
+Comment=High precision scientific calculator
+# We handle the terminal launch manually to pass the App ID
+Terminal=false
+# Use your preferred launcher, setting the ID to 'org.omarchy.numbat'
+Exec=xdg-terminal-exec --app-id="org.omarchy.numbat" numbat
+Type=Application
+Icon=accessories-calculator
+Categories=Utility;Calculator;ConsoleOnly;

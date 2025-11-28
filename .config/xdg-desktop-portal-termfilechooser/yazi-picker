@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -e
+
+exec > /tmp/yazi-wrapper.log 2>&1
+set -x
+echo "Running at $(date)"
+echo "Args: $@"
+
+multiple="$1"
+directory="$2"
+save="$3"
+path="$4"
+out="$5"
+
+# Build Yazi arguments array
+args=()
+if [ "$save" = "1" ]; then
+    args+=("--chooser-file=$out" "$path")
+elif [ "$directory" = "1" ]; then
+    args+=("--chooser-file=$out" "--cwd-file=$out.1" "$path")
+elif [ "$multiple" = "1" ]; then
+    args+=("--chooser-file=$out" "$path")
+else
+    args+=("--chooser-file=$out" "$path")
+fi
+
+# RUN GHOSTTY
+# - We use `bash -c` inside Ghostty to properly expand the command and args.
+# - We assume Ghostty is in your PATH.
+# - We use '--' to ensure Ghostty knows the rest is the command.
+xdg-terminal-exec --app-id="org.omarchy.yazi-picker" -e yazi "${args[@]}"
+
+# Post-processing for directory selection
+if [ "$directory" = "1" ]; then
+    if [ ! -s "$out" ] && [ -s "$out.1" ]; then
+        cat "$out.1" > "$out"
+        rm "$out.1"
+    else
+        rm -f "$out.1"
+    fi
+fi

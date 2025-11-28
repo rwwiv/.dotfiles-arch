@@ -49,18 +49,21 @@
 
 
 #workspaces button:hover {
-  background: none;
   color: shade(@foreground, 1.1);
+  background: transparent;
+  background-color: transparent;
   box-shadow: none;
   text-shadow: none;
-  transition: none;
+  border-color: transparent;
 }
 
 
 #workspaces button {
   color: @foreground;
   min-width: 8px;
+  border: 0px solid transparent;
   padding: 0 5px;
+  margin: 0 1px;
 }
 
 #workspaces button.active {

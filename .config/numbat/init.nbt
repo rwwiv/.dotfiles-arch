@@ -1,0 +1,9 @@
+# CSS Pixel math
+unit rem: Pixel = 16 px
+
+fn fromC(t: Scalar) -> Temperature = from_celsius(t)
+fn fromF(t: Scalar) -> Temperature = from_fahrenheit(t)
+
+fn toC(t: Temperature) -> Scalar = celsius(t)
+fn toF(t: Temperature) -> Scalar = fahrenheit(t)
+

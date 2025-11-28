@@ -86,3 +86,24 @@ extract() {
     echo "'$1' is not a valid file"
   fi
 }
+
+sshp() {
+  # Check if the first argument contains a '+'
+  if [[ "$1" == *+* ]]; then
+    # 1. Extract Session (Remove everything from the '+' onwards)
+    local session="${1%+*}"
+    
+    # 2. Extract Host (Remove everything up to the '+')
+    local host="${1#*+}"
+    
+    # Remove the first argument (session+host) so we can pass the rest
+    shift
+    
+    # Connect
+    ssh -t "$host" "shpool attach '$session' || shpool create '$session'" "$@"
+  else
+    # Standard SSH behavior
+    ssh "$@"
+  fi
+}
+compdef sshp=ssh

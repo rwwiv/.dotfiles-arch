@@ -1,0 +1,13 @@
+[Unit]
+Description=Hyprland Automation: ddcutil_cache_daemon
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+ExecStart=/home/rwwiv/.config/hypr/scripts/ddcutil_cache_daemon
+Restart=always
+RestartSec=3
+Environment="PYTHONUNBUFFERED=1"
+
+[Install]
+WantedBy=graphical-session.target

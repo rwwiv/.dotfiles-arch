@@ -1,0 +1,4 @@
+# Ignore various config dirs
+hypr/**/local.conf
+hypr/**/*.glsl
+

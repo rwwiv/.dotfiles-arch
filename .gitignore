@@ -21,10 +21,6 @@
 !*local*/
 !**/*local*/
 
-# local hypr config
-.config/hypr/**/local.conf
-.config/hypr/**/*.glsl
-
 # Backup directories
 dotfiles-backup-*/
 

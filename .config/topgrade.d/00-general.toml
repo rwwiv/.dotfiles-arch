@@ -1,0 +1,5 @@
+[misc]
+assume_yes = true
+cleanup = true
+notify_each_step = false
+disable = ["node", "vim", "emacs", "git_repos"]

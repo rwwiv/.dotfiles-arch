@@ -33,10 +33,10 @@ sudo chown postgres:postgres /var/lib/postgres/data /var/lib/postgres/tmp
 # begin upgrade
 cd /var/lib/postgres/tmp
 sudo -u postgres initdb -D /var/lib/postgres/data
-sudo -u postgres pg_upgrade -b /opt/pgsql-$PG_VERSION/bin -B /usr/bin -d /var/lib/postgres/olddata -D /var/lib/postgres/data
+sudo -u postgres pg_upgrade -b /opt/pgsql-"$PG_VERSION"/bin -B /usr/bin -d /var/lib/postgres/olddata -D /var/lib/postgres/data
 sudo -u postgres ./delete_old_cluster.sh
 
 # start postgres
 sudo systemctl start postgresql
 
-sudo -u postgres vacuumdb --all --analyze-in-stages --jobs=$(nproc)
+sudo -u postgres vacuumdb --all --analyze-in-stages --jobs="$(nproc)"

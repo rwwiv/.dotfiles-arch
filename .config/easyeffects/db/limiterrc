@@ -1,0 +1,9 @@
+[sie][Limiter#0]
+bypass=true
+mode=1
+outputGain=-4
+threshold=-1
+
+[soe][Limiter#0]
+gainBoost=false
+lookahead=10

@@ -1,0 +1,10 @@
+[Unit]
+Description=ddcutil D-Bus service
+After=graphical-session.target
+
+[Service]
+ExecStart=/usr/bin/ddcutil-service
+Restart=on-failure
+
+[Install]
+WantedBy=graphical-session.target
