@@ -34,36 +34,70 @@ DOTFILES_DIR="$HOME"
 
 # If running from local dotfiles directory, use that instead
 if [[ -f ".config/.yadm-project" ]]; then
-    DOTFILES_DIR="$(pwd)"
+	DOTFILES_DIR="$(pwd)"
 fi
+
+# User services to enable
+USER_SERVICES=(
+	# --- Desktop Core ---
+	"hypridle.service"
+	"mako.service"
+	"waybar.service"
+	"xdg-user-dirs.service"
+
+	# --- Audio & Media ---
+	"wireplumber.service"
+	"pipewire.socket"
+	"pipewire-pulse.socket"
+
+	# --- Hardware & Tools ---
+	"cameractrlsd.service"
+	"ddcutil-service.service"
+	"ddcutil_cache_daemon.service"
+
+	# --- Custom / Personal ---
+	"elephant.service"
+	"powermon.service"
+	"screenshare_optimizer.service"
+
+	# --- Timers (Scheduled Tasks) ---
+	"git-maintenance@daily.timer"
+	"omarchy-battery-monitor.timer"
+	"swww-rand.timer"
+
+	# --- Security/Auth (Sockets) ---
+	"gnome-keyring-daemon.socket"
+	"p11-kit-server.socket"
+)
+
 
 # Helper functions
 print_header() {
-    echo
-    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${BLUE}  $1${NC}"
-    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo
+	echo
+	echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+	echo -e "${BLUE}  $1${NC}"
+	echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+	echo
 }
 
 print_success() {
-    echo -e "${GREEN}✓${NC} $1"
+	echo -e "${GREEN}✓${NC} $1"
 }
 
 print_error() {
-    echo -e "${RED}✗${NC} $1"
+	echo -e "${RED}✗${NC} $1"
 }
 
 print_warning() {
-    echo -e "${YELLOW}⚠${NC} $1"
+	echo -e "${YELLOW}⚠${NC} $1"
 }
 
 print_info() {
-    echo -e "${MAGENTA}→${NC} $1"
+	echo -e "${MAGENTA}→${NC} $1"
 }
 
 print_skip() {
-    echo -e "${YELLOW}⊘${NC} $1"
+	echo -e "${YELLOW}⊘${NC} $1"
 }
 
 # Main bootstrap
@@ -75,151 +109,151 @@ echo
 # 1. Copy /etc files
 # ============================================================================
 if [[ -n "${YADM_BOOTSTRAP_SKIP_SYSTEM:-}" ]]; then
-    print_skip "Skipping system file copies (YADM_BOOTSTRAP_SKIP_SYSTEM=1)"
+	print_skip "Skipping system file copies (YADM_BOOTSTRAP_SKIP_SYSTEM=1)"
 else
-    print_header "Step 1: System Files (/etc)"
+	print_header "Step 1: System Files (/etc)"
 
-    if [[ -d "$DOTFILES_DIR/etc" ]]; then
-        print_info "Copying files to /etc from $DOTFILES_DIR/etc..."
-        echo
+	if [[ -d "$DOTFILES_DIR/etc" ]]; then
+		print_info "Copying files to /etc from $DOTFILES_DIR/etc..."
+		echo
 
-        # Function to copy files recursively
-        copy_files() {
-            local src_base="$1"
-            local dst_base="$2"
-            local has_errors=0
-            local src_file rel_path dst_file dst_dir
+		# Function to copy files recursively
+		copy_files() {
+			local src_base="$1"
+			local dst_base="$2"
+			local has_errors=0
+			local src_file rel_path dst_file dst_dir
 
-            while IFS= read -r src_file; do
-                # Get relative path from src_base
-                rel_path="${src_file#"$src_base"/}"
-                dst_file="$dst_base/$rel_path"
-                dst_dir=$(dirname "$dst_file")
+			while IFS= read -r src_file; do
+				# Get relative path from src_base
+				rel_path="${src_file#"$src_base"/}"
+				dst_file="$dst_base/$rel_path"
+				dst_dir=$(dirname "$dst_file")
 
-                # Create destination directory if needed
-                if [[ ! -d "$dst_dir" ]]; then
-                    if sudo mkdir -p "$dst_dir" 2>/dev/null; then
-                        print_info "Created directory: $dst_dir"
-                    else
-                        print_error "Failed to create directory: $dst_dir"
-                        has_errors=1
-                        continue
-                    fi
-                fi
+				# Create destination directory if needed
+				if [[ ! -d "$dst_dir" ]]; then
+					if sudo mkdir -p "$dst_dir" 2>/dev/null; then
+						print_info "Created directory: $dst_dir"
+					else
+						print_error "Failed to create directory: $dst_dir"
+						has_errors=1
+						continue
+					fi
+				fi
 
-                # Check if file exists and compare
-                if [[ -e "$dst_file" ]]; then
-                    # Compare files to see if they're different
-                    if cmp -s "$src_file" "$dst_file" 2>/dev/null; then
-                        # File content matches, but verify ownership
-                        if [[ "$(stat -c '%u:%g' "$dst_file" 2>/dev/null)" != "0:0" ]]; then
-                            if sudo chown root:root "$dst_file" 2>/dev/null; then
-                                print_success "Fixed ownership: $rel_path"
-                            else
-                                print_error "Failed to fix ownership: $rel_path"
-                                has_errors=1
-                            fi
-                        else
-                            print_success "Already up-to-date: $rel_path"
-                        fi
-                    else
-                        print_warning "File exists (backing up): $dst_file"
-                        if sudo mv "$dst_file" "$dst_file.bak.$(date +%Y%m%d-%H%M%S)" 2>/dev/null; then
-                            if sudo cp -p "$src_file" "$dst_file" 2>/dev/null && sudo chown root:root "$dst_file" 2>/dev/null; then
-                                print_success "Copied (after backup): $rel_path"
-                            else
-                                print_error "Failed to copy file: $rel_path"
-                                has_errors=1
-                            fi
-                        else
-                            print_error "Failed to backup: $dst_file"
-                            has_errors=1
-                        fi
-                    fi
-                else
-                    if sudo cp -p "$src_file" "$dst_file" 2>/dev/null && sudo chown root:root "$dst_file" 2>/dev/null; then
-                        print_success "Copied: $rel_path"
-                    else
-                        print_error "Failed to copy file: $rel_path"
-                        has_errors=1
-                    fi
-                fi
-            done < <(find "$src_base" -type f -o -type l)
+				# Check if file exists and compare
+				if [[ -e "$dst_file" ]]; then
+					# Compare files to see if they're different
+					if cmp -s "$src_file" "$dst_file" 2>/dev/null; then
+						# File content matches, but verify ownership
+						if [[ "$(stat -c '%u:%g' "$dst_file" 2>/dev/null)" != "0:0" ]]; then
+							if sudo chown root:root "$dst_file" 2>/dev/null; then
+								print_success "Fixed ownership: $rel_path"
+							else
+								print_error "Failed to fix ownership: $rel_path"
+								has_errors=1
+							fi
+						else
+							print_success "Already up-to-date: $rel_path"
+						fi
+					else
+						print_warning "File exists (backing up): $dst_file"
+						if sudo mv "$dst_file" "$dst_file.bak.$(date +%Y%m%d-%H%M%S)" 2>/dev/null; then
+							if sudo cp -p "$src_file" "$dst_file" 2>/dev/null && sudo chown root:root "$dst_file" 2>/dev/null; then
+								print_success "Copied (after backup): $rel_path"
+							else
+								print_error "Failed to copy file: $rel_path"
+								has_errors=1
+							fi
+						else
+							print_error "Failed to backup: $dst_file"
+							has_errors=1
+						fi
+					fi
+				else
+					if sudo cp -p "$src_file" "$dst_file" 2>/dev/null && sudo chown root:root "$dst_file" 2>/dev/null; then
+						print_success "Copied: $rel_path"
+					else
+						print_error "Failed to copy file: $rel_path"
+						has_errors=1
+					fi
+				fi
+			done < <(find "$src_base" -type f -o -type l)
 
-            return $has_errors
-        }
+			return $has_errors
+		}
 
-        if copy_files "$DOTFILES_DIR/etc" "/etc"; then
-            echo
-            print_success "System files copied successfully"
-        else
-            echo
-            print_warning "System file copies completed with some errors"
-        fi
-    else
-        print_info "No system files found (no etc/ directory)"
-    fi
+		if copy_files "$DOTFILES_DIR/etc" "/etc"; then
+			echo
+			print_success "System files copied successfully"
+		else
+			echo
+			print_warning "System file copies completed with some errors"
+		fi
+	else
+		print_info "No system files found (no etc/ directory)"
+	fi
 fi
 
 # ============================================================================
 # 2. Install packages
 # ============================================================================
 if [[ -n "${YADM_BOOTSTRAP_SKIP_PACKAGES:-}" ]]; then
-    print_skip "Skipping package installation (YADM_BOOTSTRAP_SKIP_PACKAGES=1)"
+	print_skip "Skipping package installation (YADM_BOOTSTRAP_SKIP_PACKAGES=1)"
 else
-    print_header "Step 2: Package Installation"
+	print_header "Step 2: Package Installation"
 
-    # Check for yay
-    if ! command -v yay &> /dev/null; then
-        print_error "yay (AUR helper) is not installed"
-        echo
-        echo "Install yay first:"
-        echo "  sudo pacman -S --needed git base-devel"
-        echo "  git clone https://aur.archlinux.org/yay.git"
-        echo "  cd yay && makepkg -si"
-        echo
-        print_warning "Skipping package installation"
-    else
-        print_success "yay is installed"
-        echo
+	# Check for yay
+	if ! command -v yay &> /dev/null; then
+		print_error "yay (AUR helper) is not installed"
+		echo
+		echo "Install yay first:"
+		echo "  sudo pacman -S --needed git base-devel"
+		echo "  git clone https://aur.archlinux.org/yay.git"
+		echo "  cd yay && makepkg -si"
+		echo
+		print_warning "Skipping package installation"
+	else
+		print_success "yay is installed"
+		echo
 
-        # Install core packages
-        if [[ -f "$DOTFILES_DIR/pkglist.txt" ]]; then
-            print_info "Installing core packages from pkglist.txt..."
-            echo
+		# Install core packages
+		if [[ -f "$DOTFILES_DIR/pkglist.txt" ]]; then
+			print_info "Installing core packages from pkglist.txt..."
+			echo
 
-            # Filter out comments and blank lines before passing to yay
-            if grep -v '^#' "$DOTFILES_DIR/pkglist.txt" | grep -v '^[[:space:]]*$' | yay -S --needed --noconfirm - 2>&1 | tee /tmp/yadm-bootstrap-core.log; then
-                print_success "Core packages installed"
-            else
-                print_error "Some core packages failed to install (see /tmp/yadm-bootstrap-core.log)"
-            fi
-            echo
-        else
-            print_warning "pkglist.txt not found"
-        fi
+			# Filter out comments and blank lines before passing to yay
+			if grep -v '^#' "$DOTFILES_DIR/pkglist.txt" | grep -v '^[[:space:]]*$' | yay -S --needed --noconfirm - 2>&1 | tee /tmp/yadm-bootstrap-core.log; then
+				print_success "Core packages installed"
+			else
+				print_error "Some core packages failed to install (see /tmp/yadm-bootstrap-core.log)"
+			fi
+			echo
+		else
+			print_warning "pkglist.txt not found"
+		fi
 
-        # Install optional packages
-        if [[ -z "${YADM_BOOTSTRAP_SKIP_OPTIONAL:-}" ]]; then
-            if [[ -f "$DOTFILES_DIR/pkglist-optional.txt" ]]; then
-                print_info "Installing optional packages from pkglist-optional.txt..."
-                echo
+		# Install optional packages
+		if [[ -z "${YADM_BOOTSTRAP_SKIP_OPTIONAL:-}" ]]; then
+			if [[ -f "$DOTFILES_DIR/pkglist-optional.txt" ]]; then
+				print_info "Installing optional packages from pkglist-optional.txt..."
+				echo
 
-                # Filter out comments and blank lines before passing to yay
-                # Use --noconfirm and don't fail on errors for optional packages
-                if grep -v '^#' "$DOTFILES_DIR/pkglist-optional.txt" | grep -v '^[[:space:]]*$' | yay -S --needed --noconfirm - 2>&1 | tee /tmp/yadm-bootstrap-optional.log; then
-                    print_success "Optional packages installed"
-                else
-                    print_warning "Some optional packages failed to install (see /tmp/yadm-bootstrap-optional.log)"
-                fi
-                echo
-            else
-                print_warning "pkglist-optional.txt not found"
-            fi
-        else
-            print_skip "Skipping optional packages (YADM_BOOTSTRAP_SKIP_OPTIONAL=1)"
-        fi
-    fi
+				# Filter out comments and blank lines before passing to yay
+				# Use --noconfirm and don't fail on errors for optional packages
+				if grep -v '^#' "$DOTFILES_DIR/pkglist-optional.txt" | grep -v '^[[:space:]]*$' | yay -S --needed --noconfirm - 2>&1 | tee /tmp/yadm-bootstrap-optional.log; then
+					print_success "Optional packages installed"
+				else
+					print_warning "Some optional packages failed to install (see /tmp/yadm-bootstrap-optional.log)"
+				fi
+				echo
+			else
+				print_warning "pkglist-optional.txt not found"
+			fi
+		else
+			print_skip "Skipping optional packages (YADM_BOOTSTRAP_SKIP_OPTIONAL=1)"
+		fi
+	fi
 fi
 
 # ============================================================================
@@ -228,118 +262,111 @@ fi
 print_header "Step 3: Git LFS"
 
 if command -v git-lfs &> /dev/null; then
-    print_info "Setting up Git LFS..."
-    if git lfs install 2>&1 | grep -q "Updated\|already"; then
-        print_success "Git LFS configured"
-    else
-        print_warning "Git LFS setup may have failed"
-    fi
+	print_info "Setting up Git LFS..."
+	if git lfs install 2>&1 | grep -q "Updated\|already"; then
+		print_success "Git LFS configured"
+	else
+		print_warning "Git LFS setup may have failed"
+	fi
 else
-    print_warning "git-lfs not installed (install via packages)"
+	print_warning "git-lfs not installed (install via packages)"
 fi
 
 # ============================================================================
 # 4. Enable systemd services
 # ============================================================================
 if [[ -n "${YADM_BOOTSTRAP_SKIP_SERVICES:-}" ]]; then
-    print_skip "Skipping systemd services (YADM_BOOTSTRAP_SKIP_SERVICES=1)"
+	print_skip "Skipping systemd services (YADM_BOOTSTRAP_SKIP_SERVICES=1)"
 else
-    print_header "Step 4: Systemd Services"
+	print_header "Step 4: Systemd Services"
+	print_info "Reloading systemd user daemon..."
+	systemctl --user daemon-reload
+	echo
 
-    # User services to enable
-    USER_SERVICES=(
-        "cameractrlsd.service"
-        "tailscale-systray.service"
-    )
+	for service in "${USER_SERVICES[@]}"; do
+		print_info "Enabling $service..."
 
-    print_info "Reloading systemd user daemon..."
-    systemctl --user daemon-reload
-    echo
-
-    for service in "${USER_SERVICES[@]}"; do
-        print_info "Enabling $service..."
-
-        # Check if service exists
-        if systemctl --user list-unit-files "$service" &>/dev/null; then
-            if systemctl --user enable "$service" 2>/dev/null; then
-                if systemctl --user start "$service" 2>/dev/null; then
-                    print_success "$service enabled and started"
-                else
-                    print_warning "$service enabled but failed to start"
-                fi
-            else
-                print_warning "$service could not be enabled"
-            fi
-        else
-            print_warning "$service not found (may not be installed yet)"
-        fi
-    done
-    echo
+		# Check if service exists
+		if systemctl --user list-unit-files "$service" &>/dev/null; then
+			if systemctl --user enable "$service" 2>/dev/null; then
+				if systemctl --user start "$service" 2>/dev/null; then
+					print_success "$service enabled and started"
+				else
+					print_warning "$service enabled but failed to start"
+				fi
+			else
+				print_warning "$service could not be enabled"
+			fi
+		else
+			print_warning "$service not found (may not be installed yet)"
+		fi
+	done
+	echo
 fi
 
 # ============================================================================
 # 5. Hyprland plugins
 # ============================================================================
 if [[ -n "${YADM_BOOTSTRAP_SKIP_HYPRLAND:-}" ]]; then
-    print_skip "Skipping Hyprland plugins (YADM_BOOTSTRAP_SKIP_HYPRLAND=1)"
+	print_skip "Skipping Hyprland plugins (YADM_BOOTSTRAP_SKIP_HYPRLAND=1)"
 else
-    print_header "Step 5: Hyprland Plugins"
+	print_header "Step 5: Hyprland Plugins"
 
-    if command -v hyprpm &> /dev/null; then
-        print_info "Setting up split-monitor-workspaces plugin..."
-        echo
+	if command -v hyprpm &> /dev/null; then
+		print_info "Setting up split-monitor-workspaces plugin..."
+		echo
 
-        # Check if already added
-        if hyprpm list | grep -q "split-monitor-workspaces"; then
-            print_success "Plugin already added"
-        else
-            print_info "Adding plugin repository..."
-            if hyprpm add https://github.com/Duckonaut/split-monitor-workspaces 2>&1 | tee /tmp/yadm-bootstrap-hyprpm.log; then
-                print_success "Plugin repository added"
-            else
-                print_error "Failed to add plugin repository (see /tmp/yadm-bootstrap-hyprpm.log)"
-            fi
-        fi
+		# Check if already added
+		if hyprpm list | grep -q "split-monitor-workspaces"; then
+			print_success "Plugin already added"
+		else
+			print_info "Adding plugin repository..."
+			if hyprpm add https://github.com/Duckonaut/split-monitor-workspaces 2>&1 | tee /tmp/yadm-bootstrap-hyprpm.log; then
+				print_success "Plugin repository added"
+			else
+				print_error "Failed to add plugin repository (see /tmp/yadm-bootstrap-hyprpm.log)"
+			fi
+		fi
 
-        print_info "Enabling plugin..."
-        if hyprpm enable split-monitor-workspaces 2>/dev/null; then
-            print_success "Plugin enabled"
-        else
-            print_warning "Failed to enable plugin (may already be enabled)"
-        fi
+		print_info "Enabling plugin..."
+		if hyprpm enable split-monitor-workspaces 2>/dev/null; then
+			print_success "Plugin enabled"
+		else
+			print_warning "Failed to enable plugin (may already be enabled)"
+		fi
 
-        print_info "Reloading plugins..."
-        if hyprpm reload 2>/dev/null; then
-            print_success "Plugins reloaded"
-        else
-            print_warning "Failed to reload plugins (Hyprland may not be running)"
-        fi
-        echo
-    else
-        print_warning "hyprpm not found (Hyprland may not be installed yet)"
-    fi
+		print_info "Reloading plugins..."
+		if hyprpm reload 2>/dev/null; then
+			print_success "Plugins reloaded"
+		else
+			print_warning "Failed to reload plugins (Hyprland may not be running)"
+		fi
+		echo
+	else
+		print_warning "hyprpm not found (Hyprland may not be installed yet)"
+	fi
 fi
 
 # ============================================================================
 # 6. Default applications
 # ============================================================================
 if [[ -n "${YADM_BOOTSTRAP_SKIP_XDG:-}" ]]; then
-    print_skip "Skipping XDG defaults (YADM_BOOTSTRAP_SKIP_XDG=1)"
+	print_skip "Skipping XDG defaults (YADM_BOOTSTRAP_SKIP_XDG=1)"
 else
-    print_header "Step 6: Default Applications"
+	print_header "Step 6: Default Applications"
 
-    if command -v xdg-mime &> /dev/null; then
-        print_info "Configuring zathura as default PDF reader..."
+	if command -v xdg-mime &> /dev/null; then
+		print_info "Configuring zathura as default PDF reader..."
 
-        if xdg-mime default org.pwmt.zathura.desktop application/pdf 2>/dev/null; then
-            print_success "Zathura set as default PDF reader"
-        else
-            print_warning "Failed to set zathura as default (may not be installed yet)"
-        fi
-        echo
-    else
-        print_warning "xdg-mime not found"
-    fi
+		if xdg-mime default org.pwmt.zathura.desktop application/pdf 2>/dev/null; then
+			print_success "Zathura set as default PDF reader"
+		else
+			print_warning "Failed to set zathura as default (may not be installed yet)"
+		fi
+		echo
+	else
+		print_warning "xdg-mime not found"
+	fi
 fi
 
 # ============================================================================
