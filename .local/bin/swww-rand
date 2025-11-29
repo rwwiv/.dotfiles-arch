@@ -2,7 +2,33 @@
 
 WALLPAPER_DIR="$HOME/.config/omarchy/current/theme/backgrounds/"
 CURRENT_WALL="$HOME/.config/omarchy/current/background"
+HISTORY_FILE="$HOME/.cache/swww-rand-history"
 
-NEW_WALL=$(find "$WALLPAPER_DIR" -type f ! -name "$(basename "$CURRENT_WALL")" | shuf -n 1)
+# Ensure cache directory exists
+mkdir -p "$(dirname "$HISTORY_FILE")"
+
+# Get all available wallpapers
+ALL_WALLS=$(find "$WALLPAPER_DIR" -type f)
+TOTAL_COUNT=$(echo "$ALL_WALLS" | wc -l)
+
+# Get wallpapers not yet used (not in history)
+if [[ -f "$HISTORY_FILE" ]]; then
+    UNUSED_WALLS=$(echo "$ALL_WALLS" | grep -vxFf "$HISTORY_FILE")
+else
+    UNUSED_WALLS="$ALL_WALLS"
+fi
+
+# If all wallpapers have been used, reset history
+if [[ -z "$UNUSED_WALLS" ]]; then
+    rm -f "$HISTORY_FILE"
+    UNUSED_WALLS="$ALL_WALLS"
+fi
+
+# Pick a random wallpaper from unused ones
+NEW_WALL=$(echo "$UNUSED_WALLS" | shuf -n 1)
+
+# Add to history
+echo "$NEW_WALL" >> "$HISTORY_FILE"
+
 ln -nsf "$NEW_WALL" "$CURRENT_WALL"
 swww img "$NEW_WALL" --transition-type fade --transition-duration 1
