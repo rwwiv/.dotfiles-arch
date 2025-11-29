@@ -8,410 +8,418 @@ WG_CONF_DIR="$HOME/.config/wireguard"
 WG_SYMLINK="$WG_CONF_DIR/wg0.conf"
 CACHE_FILE="$HOME/.cache/vpn-last-used"
 
-# Colors
-COLOR_ON="2"    # Theme Green
-COLOR_OFF="8"    # Theme Grey (Bright Black)
-COLOR_ACCENT="4"  # Theme Blue
+# Colors (using theme)
+C_ON="2"      # Green
+C_OFF="8"     # Grey
+C_ACCENT="4"  # Blue
+C_WARN="3"    # Yellow
 
-# Helper: Get Pretty Name from Filename
+# ─────────────────────────────────────────────────
+# Helpers
+# ─────────────────────────────────────────────────
+
 get_pretty_name() {
-    local filename
-    filename=$(basename "$1")
-    local name="${filename%.*}"      # Remove extension
+    local name
+    name=$(basename "${1%.*}")
     echo "$name" | tr -- '-_' '  '
 }
 
-while true; do
-    # --- Calc Dimensions ---
-    TERM_WIDTH=$(tput cols 2>/dev/null || echo 80)
-    TERM_HEIGHT=$(tput lines 2>/dev/null || echo 24)
-    CONTENT_WIDTH=35
-    CONTENT_HEIGHT=12  # Approx lines for header + menu items
-    
-    # Horizontal Padding
-    if [ "$TERM_WIDTH" -gt "$CONTENT_WIDTH" ]; then
-        PAD_LEFT=$(( (TERM_WIDTH - CONTENT_WIDTH) / 2 ))
+# Resize window to fit content (width_chars, height_lines)
+resize_window() {
+    local cols="$1" lines="$2"
+    # Get current font metrics from terminal
+    # Ghostty: ~10px per char width, ~20px per line (approximate)
+    local char_width=10 line_height=22
+    local width=$((cols * char_width))
+    local height=$((lines * line_height))
+
+    hyprctl --batch "dispatch resizeactive exact $width $height; dispatch centerwindow" &>/dev/null
+}
+
+# ─────────────────────────────────────────────────
+# Status Fetchers
+# ─────────────────────────────────────────────────
+
+get_tailscale_status() {
+    local ts_state
+    ts_state=$(tailscale status --json 2>/dev/null | jq -r '.BackendState' 2>/dev/null)
+
+    if [[ "$ts_state" == "Running" ]]; then
+        TS_ON=true
     else
-        PAD_LEFT=0
-    fi
-    
-    # Vertical Padding
-    if [ "$TERM_HEIGHT" -gt "$CONTENT_HEIGHT" ]; then
-        PAD_TOP=$(( (TERM_HEIGHT - CONTENT_HEIGHT) / 2 ))
-    else
-        PAD_TOP=0
+        TS_ON=false
     fi
 
-    # 1. Check Status
-    TS_JSON=$(tailscale status --json 2>/dev/null)
-    TS_STATE=$(echo "$TS_JSON" | jq -r '.BackendState' 2>/dev/null)
-    
-    if [ "$TS_STATE" == "Running" ]; then
-        TS_STR=$(gum style --foreground "$COLOR_ON" "● ON")
-        TS_TEXT="ON"
-        
-        # Check Exit Node status if running
-        EXIT_NODE_STATUS=$(echo "$TS_JSON" | jq -r '.ExitNodeStatus.ID' 2>/dev/null)
-        if [ "$EXIT_NODE_STATUS" != "null" ] && [ -n "$EXIT_NODE_STATUS" ]; then
-             # Try to find name using ID
-             EXIT_NODE_NAME=$(echo "$TS_JSON" | jq -r ".Peer[] | select(.ID == \"$EXIT_NODE_STATUS\") | .HostName" 2>/dev/null)
-             TS_DETAIL=" ($EXIT_NODE_NAME)"
-        else
-             EXIT_NODE_NAME=""
-             TS_DETAIL=""
+    # Get selected exit node from exit-node list
+    TS_EXIT_NODE=""
+    local line
+    while IFS= read -r line; do
+        if [[ "$line" =~ selected ]]; then
+            read -r _ip hostname _rest <<< "$line"
+            TS_EXIT_NODE="${hostname%%.*}"
+            break
         fi
-    else
-        TS_STR=$(gum style --foreground "$COLOR_OFF" "○ OFF")
-        TS_TEXT="OFF"
-        TS_DETAIL=""
-        EXIT_NODE_NAME=""
-    fi
-    ITEM_TS="Tailscale      $TS_STR$TS_DETAIL"
+    done <<< "$(tailscale exit-node list 2>/dev/null)"
+}
 
-    # WireGuard Status
-    CURRENT_WG_NAME=""
-    if [ -L "$WG_SYMLINK" ]; then
-        REAL_PATH=$(readlink -f "$WG_SYMLINK")
-        CURRENT_WG_NAME=$(get_pretty_name "$REAL_PATH")
+get_wireguard_status() {
+    WG_ON=false
+    WG_PROFILE=""
+
+    if [[ -L "$WG_SYMLINK" ]]; then
+        WG_PROFILE=$(get_pretty_name "$(readlink -f "$WG_SYMLINK")")
     fi
 
-    WG_IS_UP=false
-    if ip link show "$WG_IFACE" >/dev/null 2>&1;
-then
-        if ip link show "$WG_IFACE" | grep -q "UP"; then
-            WG_IS_UP=true
-        fi
+    if ip link show "$WG_IFACE" &>/dev/null && ip link show "$WG_IFACE" | grep -q "UP"; then
+        WG_ON=true
     fi
+}
 
-    if [ "$WG_IS_UP" = true ]; then
-        WG_STR=$(gum style --foreground "$COLOR_ON" "● ON")
-        # WG_TEXT="ON"
-    else
-        WG_STR=$(gum style --foreground "$COLOR_OFF" "○ OFF")
-        # WG_TEXT="OFF"
-    fi
-    
-    if [ -n "$CURRENT_WG_NAME" ]; then
-        ITEM_WG="WireGuard      $WG_STR  ($CURRENT_WG_NAME)"
-    else
-        ITEM_WG="WireGuard      $WG_STR"
-    fi
-    
-    ITEM_EXIT="Exit"
+# ─────────────────────────────────────────────────
+# Actions
+# ─────────────────────────────────────────────────
 
-    # 2. Header
+tailscale_connect() {
+    if [[ "$WG_ON" == true ]]; then
+        gum spin --spinner dot --title "Stopping WireGuard..." -- sudo wg-quick down "$WG_SYMLINK"
+    fi
+    gum spin --spinner dot --title "Connecting Tailscale..." -- tailscale up
+    echo "tailscale" > "$CACHE_FILE"
+}
+
+tailscale_disconnect() {
+    gum spin --spinner dot --title "Disconnecting Tailscale..." -- tailscale down
+}
+
+wireguard_connect() {
+    if [[ "$TS_ON" == true ]]; then
+        gum spin --spinner dot --title "Stopping Tailscale..." -- tailscale down
+    fi
+    # Cleanup zombie interface
+    if ip link show "$WG_IFACE" &>/dev/null; then
+        sudo wg-quick down "$WG_SYMLINK" &>/dev/null || sudo ip link delete "$WG_IFACE" &>/dev/null
+    fi
+    gum spin --spinner dot --title "Connecting WireGuard..." -- sudo wg-quick up "$WG_SYMLINK"
+    echo "wireguard" > "$CACHE_FILE"
+}
+
+wireguard_disconnect() {
+    gum spin --spinner dot --title "Disconnecting WireGuard..." -- sudo wg-quick down "$WG_SYMLINK"
+}
+
+# ─────────────────────────────────────────────────
+# Menus
+# ─────────────────────────────────────────────────
+
+show_header() {
+    resize_window 50 5
     clear
-    # Print vertical padding
-    for ((i=0; i<PAD_TOP; i++)); do echo; done
-    
-    gum style \
-        --foreground "$COLOR_ACCENT" \
-        --border-foreground "$COLOR_ACCENT" \
-        --border double \
-        --align center \
-        --width "$CONTENT_WIDTH" \
-        --margin "1 1 1 $PAD_LEFT" \
-        "VPN CONTROL"
+}
 
-    # 3. Main Menu
-    SELECTION=$(gum choose \
-        --cursor.foreground "$COLOR_ACCENT" \
-        --header "" \
-        --padding "0 $PAD_LEFT" \
-        "$ITEM_TS" \
-        "$ITEM_WG" \
-        "$ITEM_EXIT")
+menu_main() {
+    local ts_status wg_status ts_detail="" wg_detail=""
 
-    if [ -z "$SELECTION" ]; then
-        clear
-        exit 0
+    # Build Tailscale status
+    if [[ "$TS_ON" == true ]]; then
+        ts_status=$(gum style --foreground "$C_ON" "● ON")
+    else
+        ts_status=$(gum style --foreground "$C_OFF" "○ OFF")
+    fi
+    [[ -n "$TS_EXIT_NODE" ]] && ts_detail=" → $TS_EXIT_NODE"
+
+    # Build WireGuard status
+    if [[ "$WG_ON" == true ]]; then
+        wg_status=$(gum style --foreground "$C_ON" "● ON")
+        [[ -n "$WG_PROFILE" ]] && wg_detail=" → $WG_PROFILE"
+    else
+        wg_status=$(gum style --foreground "$C_OFF" "○ OFF")
+        [[ -n "$WG_PROFILE" ]] && wg_detail=" → $WG_PROFILE"
     fi
 
-    # 4. Handle Main Selection
-    case "$SELECTION" in
-        *"Tailscale"*) 
-            # --- Tailscale Submenu ---
-            while true; do
-                TS_OPTS=()
-                
-                if [ "$TS_TEXT" == "ON" ]; then
-                    TS_OPTS+=("Disconnect")
-                else
-                    TS_OPTS+=("Connect")
-                fi
-                
-                TS_OPTS+=("Preferences")
-                TS_OPTS+=("Open Admin Console")
-                TS_OPTS+=("Back")
-                
-                TS_CHOICE=$(gum choose \
-                    --cursor.foreground "$COLOR_ACCENT" \
-                    --header.foreground "$COLOR_ACCENT" \
-                    --header "Tailscale Settings" \
-                    --padding "0 $PAD_LEFT" \
-                    "${TS_OPTS[@]}")
-                
-                if [ -z "$TS_CHOICE" ]; then
-                    break
-                fi
-                    
-                case "$TS_CHOICE" in
-                    "Disconnect")
-                        gum spin --spinner minidot --title "Stopping Tailscale..." -- tailscale down
-                        break
-                        ;;
-                    "Connect")
-                        # Mutual Exclusion
-                        if [ "$WG_IS_UP" = true ]; then
-                            gum spin --spinner minidot --title "Stopping WireGuard..." -- sudo wg-quick down "$WG_SYMLINK"
-                        fi
-                        gum spin --spinner dot --title "Starting Tailscale..." -- tailscale up
-                        echo "tailscale" > "$CACHE_FILE"
-                        break
-                        ;;
-                    "Preferences")
-                        while true; do
-                            # Fetch Prefs
-                            PREFS=$(tailscale debug prefs 2>/dev/null)
-                            
-                            # Parse Booleans
-                            P_ROUTES=$(echo "$PREFS" | jq -r '.RouteAll')
-                            P_DNS=$(echo "$PREFS" | jq -r '.CorpDNS')
-                            P_LAN=$(echo "$PREFS" | jq -r '.ExitNodeAllowLANAccess')
-                            P_SSH=$(echo "$PREFS" | jq -r '.RunSSH')
-                            P_SHIELDS=$(echo "$PREFS" | jq -r '.ShieldsUp')
-                            
-                            # Formatter
-                            fmt_bool() {
-                                if [ "$1" == "true" ]; then
-                                    gum style --foreground "$COLOR_ON" "ON"
-                                else
-                                    gum style --foreground "$COLOR_OFF" "OFF"
-                                fi
-                            }
-                            
-                            # Build Menu
-                            P_OPTS=()
-                            P_OPTS+=("Set Exit Node...")
-                            P_OPTS+=("Accept Routes       $(fmt_bool "$P_ROUTES")")
-                            P_OPTS+=("Accept DNS          $(fmt_bool "$P_DNS")")
-                            P_OPTS+=("Allow LAN Access    $(fmt_bool "$P_LAN")")
-                            P_OPTS+=("Run SSH Server      $(fmt_bool "$P_SSH")")
-                            P_OPTS+=("Block Incoming      $(fmt_bool "$P_SHIELDS")")
-                            P_OPTS+=("Back")
-                            
-                            P_CHOICE=$(gum choose \
-                                --cursor.foreground "$COLOR_ACCENT" \
-                                --header.foreground "$COLOR_ACCENT" \
-                                --header "Tailscale Preferences" \
-                                --padding "0 $PAD_LEFT" \
-                                "${P_OPTS[@]}")
-                            
-                            if [ -z "$P_CHOICE" ]; then
-                                break
-                            fi
-                                
-                            case "$P_CHOICE" in
-                                *"Set Exit Node"*) 
-                                    # Fetch Exit Nodes
-                                    gum spin --spinner dot --title "Fetching nodes..." -- sleep 0.5
-                                    
-                                    NODES_OUTPUT=$(tailscale exit-node list 2>/dev/null)
-                                    NODE_OPTS=("None")
-                                    FOUND_SELECTED=false
-                                    
-                                    while IFS= read -r line; do
-                                       [[ -z "$line" || "$line" =~ ^# ]] && continue
-                                       [[ "$line" =~ "HOSTNAME" ]] && continue
-                                       
-                                       read -r _IP HOSTNAME REST <<< "$line"
-                                       
-                                       if [ -n "$HOSTNAME" ]; then
-                                           SIMPLE_HOST="${HOSTNAME%%.*}"
-                                           if [[ "$line" =~ "selected" ]]; then
-                                                NODE_OPTS+=("$SIMPLE_HOST (Current)")
-                                                FOUND_SELECTED=true
-                                           else
-                                                NODE_OPTS+=("$SIMPLE_HOST")
-                                           fi
-                                       fi
-                                    done <<< "$NODES_OUTPUT"
-                                    
-                                    if [ "$FOUND_SELECTED" = false ]; then
-                                        NODE_OPTS[0]="${NODE_OPTS[0]} (Current)"
-                                    fi
-                                    
-                                    NODE_OPTS+=("Back")
-                                    
-                                    NODE_CHOICE=$(gum choose \
-                                       --cursor.foreground "$COLOR_ACCENT" \
-                                       --header.foreground "$COLOR_ACCENT" \
-                                       --header "Select Exit Node" \
-                                       --padding "0 $PAD_LEFT" \
-                                       "${NODE_OPTS[@]}")
-                                    
-                                    if [[ "$NODE_CHOICE" == "Back" ]] || [[ -z "$NODE_CHOICE" ]]; then
-                                       continue
-                                    elif [[ "$NODE_CHOICE" == "None"* ]]; then
-                                       gum spin --spinner dot --title "Disabling Exit Node..." -- tailscale set --exit-node ""
-                                    elif [ -n "$NODE_CHOICE" ]; then
-                                       # Strip trailing " (Current)" if present
-                                       TARGET_NODE="${NODE_CHOICE% (Current)}"
-                                       gum spin --spinner dot --title "Setting Exit Node: $TARGET_NODE..." -- tailscale set --exit-node "$TARGET_NODE"
-                                    fi
-                                    ;; 
-                                *"Accept Routes"*) 
-                                    NEW_VAL=$([ "$P_ROUTES" == "true" ] && echo "false" || echo "true")
-                                    gum spin --spinner dot --title "Toggling Routes..." -- tailscale set --accept-routes="$NEW_VAL"
-                                    ;; 
-                                *"Accept DNS"*) 
-                                    NEW_VAL=$([ "$P_DNS" == "true" ] && echo "false" || echo "true")
-                                    gum spin --spinner dot --title "Toggling DNS..." -- tailscale set --accept-dns="$NEW_VAL"
-                                    ;; 
-                                *"Allow LAN Access"*) 
-                                    NEW_VAL=$([ "$P_LAN" == "true" ] && echo "false" || echo "true")
-                                    gum spin --spinner dot --title "Toggling LAN Access..." -- tailscale set --exit-node-allow-lan-access="$NEW_VAL"
-                                    ;; 
-                                *"Run SSH Server"*) 
-                                    NEW_VAL=$([ "$P_SSH" == "true" ] && echo "false" || echo "true")
-                                    gum spin --spinner dot --title "Toggling SSH..." -- tailscale set --ssh="$NEW_VAL"
-                                    ;; 
-                                *"Block Incoming"*) 
-                                    NEW_VAL=$([ "$P_SHIELDS" == "true" ] && echo "false" || echo "true")
-                                    gum spin --spinner dot --title "Toggling Shields..." -- tailscale set --shields-up="$NEW_VAL"
-                                    ;; 
-                                "Back")
-                                    break
-                                    ;; 
-                            esac
-                        done
-                        ;; 
-                    "Open Admin Console")
-                        xdg-open "http://100.100.100.100" >/dev/null 2>&1 &
-                        ;; 
-                    "Back")
-                        break
-                        ;; 
-                esac
-            done
-            ;; 
-            
-        *"WireGuard"*) 
-            # --- WireGuard Submenu ---
-            while true; do
-                WG_OPTS=()
-                
-                if [ "$WG_IS_UP" = true ]; then
-                    WG_OPTS+=("Disconnect")
-                else
-                    WG_OPTS+=("Connect")
-                fi
-                
-                WG_OPTS+=("Select Profile...")
-                WG_OPTS+=("Back")
-    
-                WG_CHOICE=$(gum choose \
-                    --cursor.foreground "$COLOR_ACCENT" \
-                    --header.foreground "$COLOR_ACCENT" \
-                    --header "WireGuard Settings" \
-                    --padding "0 $PAD_LEFT" \
-                    "${WG_OPTS[@]}")
-                
-                if [ -z "$WG_CHOICE" ]; then
-                    break
-                fi
-                    
-                case "$WG_CHOICE" in
-                    "Disconnect"|"Connect")
-                        if [ "$WG_IS_UP" = true ]; then
-                            gum spin --spinner minidot --title "Stopping WireGuard..." -- sudo wg-quick down "$WG_SYMLINK"
-                        else
-                            if [ "$TS_TEXT" == "ON" ]; then
-                                 gum spin --spinner minidot --title "Stopping Tailscale..." -- tailscale down
-                            fi
-                            # Cleanup zombie
-                            if ip link show "$WG_IFACE" >/dev/null 2>&1;
-then
-                                 sudo wg-quick down "$WG_SYMLINK" >/dev/null 2>&1 || sudo ip link delete "$WG_IFACE" >/dev/null 2>&1
-                            fi
-                            gum spin --spinner dot --title "Starting WireGuard..." -- sudo wg-quick up "$WG_SYMLINK"
-                            echo "wireguard" > "$CACHE_FILE"
-                        fi
-                        break
-                        ;;
-                    "Select Profile...")
-                        # List Configs
-                        WG_PROFILES=()
-                        WG_PATHS=()
-                        
-                        shopt -s nullglob
-                        for conf in "$WG_CONF_DIR"/*.conf; do
-                            if [ "$(basename "$conf")" == "wg0.conf" ]; then continue; fi
-                            PRETTY=$(get_pretty_name "$conf")
-                            if [ "$PRETTY" == "$CURRENT_WG_NAME" ]; then
-                                 WG_PROFILES+=("$PRETTY (Current)")
-                            else
-                                 WG_PROFILES+=("$PRETTY")
-                            fi
-                            WG_PATHS+=("$conf")
-                        done
-                        shopt -u nullglob
-                        
-                        WG_PROFILES+=("Back")
-                        
-                        PROF_CHOICE=$(gum choose \
-                            --cursor.foreground "$COLOR_ACCENT" \
-                            --header.foreground "$COLOR_ACCENT" \
-                            --header "Select Profile" \
-                            --padding "0 $PAD_LEFT" \
-                            "${WG_PROFILES[@]}")
-                            
-                        # Find Index
-                        PROF_INDEX=-1
-                        for i in "${!WG_PROFILES[@]}"; do
-                           if [[ "${WG_PROFILES[$i]}" = "$PROF_CHOICE" ]]; then
-                               PROF_INDEX=$i
-                               break
-                           fi
-                        done
-                        
-                        if [ "$PROF_CHOICE" == "Back" ] || [ -z "$PROF_CHOICE" ]; then
-                            continue
-                        elif [ "$PROF_INDEX" -ge 0 ]; then
-                            CHOSEN_PATH="${WG_PATHS[$PROF_INDEX]}"
-                            
-                            gum spin --spinner dot --title "Switching Profile..." -- sleep 0.5
-                            
-                            # Mutual Exclusion
-                            if [ "$TS_TEXT" == "ON" ]; then
-                                 gum spin --spinner minidot --title "Stopping Tailscale..." -- tailscale down
-                            fi
-                            
-                            # Stop WG if running
-                            if ip link show "$WG_IFACE" >/dev/null 2>&1;
-then
-                                 gum spin --spinner minidot --title "Stopping active interface..." -- sudo wg-quick down "$WG_SYMLINK"
-                            fi
-                            
-                            # Link
-                            ln -sf "$CHOSEN_PATH" "$WG_SYMLINK"
-                            
-                            # Start
-                            gum spin --spinner dot --title "Starting WireGuard..." -- sudo wg-quick up "$WG_SYMLINK"
-                            echo "wireguard" > "$CACHE_FILE"
-                            break
-                        fi
-                        ;;
-                    "Back")
-                        break
-                        ;;
-                esac
-            done
-            ;;            
-        *"Exit"*) 
-            exit 0
-            ;; 
+    gum choose \
+        --cursor.foreground "$C_ACCENT" \
+        --selected.foreground "$C_ACCENT" \
+        "Tailscale    $ts_status$ts_detail" \
+        "WireGuard    $wg_status$wg_detail" \
+        "Exit"
+}
+
+menu_tailscale() {
+    # 5 items + header + padding
+    resize_window 45 8
+
+    while true; do
+        local opts=()
+
+        if [[ "$TS_ON" == true ]]; then
+            opts+=("Disconnect")
+        else
+            opts+=("Connect")
+        fi
+
+        opts+=("Change Exit Node")
+        opts+=("Preferences")
+        opts+=("Open Admin Console")
+        opts+=("Back")
+
+        local choice
+        choice=$(gum choose \
+            --cursor.foreground "$C_ACCENT" \
+            --header "Tailscale" \
+            --header.foreground "$C_ACCENT" \
+            "${opts[@]}")
+
+        case "$choice" in
+            "Connect")
+                tailscale_connect
+                return
+                ;;
+            "Disconnect")
+                tailscale_disconnect
+                return
+                ;;
+            "Change Exit Node")
+                menu_exit_nodes
+                ;;
+            "Preferences")
+                menu_tailscale_prefs
+                ;;
+            "Open Admin Console")
+                xdg-open "http://100.100.100.100" &>/dev/null &
+                ;;
+            "Back"|"")
+                return
+                ;;
+        esac
+
+        # Refresh status after actions
+        get_tailscale_status
+    done
+}
+
+menu_wireguard() {
+    # 3 items + header + padding
+    resize_window 40 6
+
+    while true; do
+        local opts=()
+
+        if [[ "$WG_ON" == true ]]; then
+            opts+=("Disconnect")
+        else
+            opts+=("Connect")
+        fi
+
+        opts+=("Select Profile")
+        opts+=("Back")
+
+        local choice
+        choice=$(gum choose \
+            --cursor.foreground "$C_ACCENT" \
+            --header "WireGuard" \
+            --header.foreground "$C_ACCENT" \
+            "${opts[@]}")
+
+        case "$choice" in
+            "Connect")
+                wireguard_connect
+                return
+                ;;
+            "Disconnect")
+                wireguard_disconnect
+                return
+                ;;
+            "Select Profile")
+                menu_wireguard_profiles
+                ;;
+            "Back"|"")
+                return
+                ;;
+        esac
+
+        # Refresh status after actions
+        get_wireguard_status
+    done
+}
+
+menu_exit_nodes() {
+    gum spin --spinner dot --title "Fetching exit nodes..." -- sleep 0.3
+
+    local nodes_output node_opts=() current_node="" node_count=0
+    nodes_output=$(tailscale exit-node list 2>/dev/null)
+
+    node_opts+=("None (direct)")
+
+    while IFS= read -r line; do
+        [[ -z "$line" || "$line" =~ ^# || "$line" =~ HOSTNAME ]] && continue
+        read -r _ip hostname _rest <<< "$line"
+        [[ -z "$hostname" ]] && continue
+
+        local simple="${hostname%%.*}"
+        if [[ "$line" =~ selected ]]; then
+            current_node="$simple"
+            node_opts+=("$simple (current)")
+        else
+            node_opts+=("$simple")
+        fi
+        ((node_count++))
+    done <<< "$nodes_output"
+
+    [[ -z "$current_node" ]] && node_opts[0]="None (current)"
+
+    node_opts+=("Back")
+
+    # Dynamic height: nodes + "None" + "Back" + header + padding
+    resize_window 45 $((node_count + 5))
+
+    local choice
+    choice=$(gum choose \
+        --cursor.foreground "$C_ACCENT" \
+        --header "Select Exit Node" \
+        --header.foreground "$C_ACCENT" \
+        "${node_opts[@]}")
+
+    case "$choice" in
+        "Back"|"") return ;;
+        "None"*|"None (direct)"*)
+            gum spin --spinner dot --title "Clearing exit node..." -- tailscale set --exit-node ""
+            ;;
+        *)
+            local node="${choice% (current)}"
+            gum spin --spinner dot --title "Setting exit node: $node..." -- tailscale set --exit-node "$node"
+            ;;
     esac
-    
-    sleep 0.2
+}
+
+menu_tailscale_prefs() {
+    # 5 toggles + "Back" + header + padding
+    resize_window 45 9
+
+    while true; do
+        local prefs opts=()
+        prefs=$(tailscale debug prefs 2>/dev/null)
+
+        local p_routes p_dns p_lan p_ssh p_shields
+        p_routes=$(echo "$prefs" | jq -r '.RouteAll')
+        p_dns=$(echo "$prefs" | jq -r '.CorpDNS')
+        p_lan=$(echo "$prefs" | jq -r '.ExitNodeAllowLANAccess')
+        p_ssh=$(echo "$prefs" | jq -r '.RunSSH')
+        p_shields=$(echo "$prefs" | jq -r '.ShieldsUp')
+
+        fmt() {
+            if [[ "$1" == "true" ]]; then
+                gum style --foreground "$C_ON" "ON "
+            else
+                gum style --foreground "$C_OFF" "OFF"
+            fi
+        }
+
+        opts+=("Accept Routes        $(fmt "$p_routes")")
+        opts+=("Accept DNS           $(fmt "$p_dns")")
+        opts+=("Allow LAN Access     $(fmt "$p_lan")")
+        opts+=("Run SSH Server       $(fmt "$p_ssh")")
+        opts+=("Block Incoming       $(fmt "$p_shields")")
+        opts+=("Back")
+
+        local choice
+        choice=$(gum choose \
+            --cursor.foreground "$C_ACCENT" \
+            --header "Tailscale Preferences (toggle)" \
+            --header.foreground "$C_ACCENT" \
+            "${opts[@]}")
+
+        case "$choice" in
+            *"Back"*|"") return ;;
+            *"Accept Routes"*)
+                local new_val=$([[ "$p_routes" == "true" ]] && echo "false" || echo "true")
+                tailscale set --accept-routes="$new_val"
+                ;;
+            *"Accept DNS"*)
+                local new_val=$([[ "$p_dns" == "true" ]] && echo "false" || echo "true")
+                tailscale set --accept-dns="$new_val"
+                ;;
+            *"Allow LAN"*)
+                local new_val=$([[ "$p_lan" == "true" ]] && echo "false" || echo "true")
+                tailscale set --exit-node-allow-lan-access="$new_val"
+                ;;
+            *"Run SSH"*)
+                local new_val=$([[ "$p_ssh" == "true" ]] && echo "false" || echo "true")
+                tailscale set --ssh="$new_val"
+                ;;
+            *"Block Incoming"*)
+                local new_val=$([[ "$p_shields" == "true" ]] && echo "false" || echo "true")
+                tailscale set --shields-up="$new_val"
+                ;;
+        esac
+    done
+}
+
+menu_wireguard_profiles() {
+    local profiles=() paths=()
+
+    shopt -s nullglob
+    for conf in "$WG_CONF_DIR"/*.conf; do
+        [[ "$(basename "$conf")" == "wg0.conf" ]] && continue
+        local pretty
+        pretty=$(get_pretty_name "$conf")
+        if [[ "$pretty" == "$WG_PROFILE" ]]; then
+            profiles+=("$pretty (current)")
+        else
+            profiles+=("$pretty")
+        fi
+        paths+=("$conf")
+    done
+    shopt -u nullglob
+
+    profiles+=("Back")
+
+    # Dynamic height: profiles + "Back" + header + padding
+    resize_window 45 $((${#profiles[@]} + 3))
+
+    local choice
+    choice=$(gum choose \
+        --cursor.foreground "$C_ACCENT" \
+        --header "Select WireGuard Profile" \
+        --header.foreground "$C_ACCENT" \
+        "${profiles[@]}")
+
+    [[ "$choice" =~ Back || -z "$choice" ]] && return
+
+    # Find matching path
+    local selected_path=""
+    for i in "${!profiles[@]}"; do
+        if [[ "${profiles[$i]}" == "$choice" ]]; then
+            selected_path="${paths[$i]}"
+            break
+        fi
+    done
+
+    [[ -z "$selected_path" ]] && return
+
+    # Stop any active VPN
+    [[ "$TS_ON" == true ]] && tailscale_disconnect
+    [[ "$WG_ON" == true ]] && wireguard_disconnect
+
+    # Switch and connect
+    ln -sf "$selected_path" "$WG_SYMLINK"
+    wireguard_connect
+}
+
+# ─────────────────────────────────────────────────
+# Main Loop
+# ─────────────────────────────────────────────────
+
+while true; do
+    get_tailscale_status
+    get_wireguard_status
+
+    show_header
+
+    choice=$(menu_main)
+
+    case "$choice" in
+        Tailscale*) menu_tailscale ;;
+        WireGuard*) menu_wireguard ;;
+        "Exit"|"")  clear; exit 0 ;;
+    esac
 done
