@@ -1,7 +1,0 @@
-[Unit]
-Description=Clean old files from Freedesktop Trash
-
-[Service]
-Type=oneshot
-# Delete items older than 30 days
-ExecStart=/usr/bin/trash-empty 30

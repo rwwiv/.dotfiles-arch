@@ -1,9 +1,0 @@
-[Desktop Entry]
-Version=1.0
-Name=Google Meet
-Comment=Google Meet
-Exec=omarchy-launch-webapp https://meet.google.com --profile-directory="Profile 4"
-Terminal=false
-Type=Application
-Icon=/home/rwwiv/.local/share/applications/icons/Google Meet.png
-StartupNotify=true

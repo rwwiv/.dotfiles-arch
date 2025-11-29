@@ -1,9 +1,0 @@
-[Desktop Entry]
-Version=1.0
-Name=Plex
-Comment=Plex
-Exec=omarchy-launch-webapp https://app.plex.tv
-Terminal=false
-Type=Application
-Icon=/home/rwwiv/.local/share/applications/icons/Plex.png
-StartupNotify=true
