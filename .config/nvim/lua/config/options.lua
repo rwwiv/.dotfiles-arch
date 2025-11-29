@@ -7,3 +7,9 @@ vim.opt.updatetime = 250 -- Increase update time
 vim.opt.swapfile = true
 vim.opt.directory = "/tmp//"
 -- vim.g.trouble_lualine = false
+
+vim.opt.expandtab = false
+vim.opt.tabstop = 2
+vim.opt.shiftwidth = 2
+vim.opt.softtabstop = 2
+-- vim.opt.autoindent = true
