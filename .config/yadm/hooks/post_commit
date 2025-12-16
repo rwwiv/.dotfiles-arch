@@ -1,0 +1,53 @@
+#!/bin/bash
+# YADM post_commit hook
+# Checks for untracked modified configs when .packages files are updated
+
+# Only run if .packages files were modified in this commit
+if ! yadm diff-tree --no-commit-id --name-only -r HEAD | /usr/bin/grep -q '\.packages$'; then
+    exit 0
+fi
+
+# Colors
+CYAN='\033[0;36m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+echo
+echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${CYAN}  Checking for untracked modified configs...${NC}"
+echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo
+
+untracked_count=0
+
+# Check all packages from .packages files
+for pkg in $(cat ~/*.packages 2>/dev/null | /usr/bin/grep -v '^#' | /usr/bin/grep -v '^$' | sed 's/#.*//' | awk '{print $1}' | sort -u); do
+    # Skip if not installed
+    pacman -Qi "$pkg" &>/dev/null || continue
+
+    # Check for modified backup files
+    while IFS= read -r line; do
+        [[ -z "$line" ]] && continue
+        file=$(echo "$line" | sed 's/.*: \(\/[^ ]*\).*/\1/')
+        relative="${file#/etc/}"
+
+        if [[ ! -f "$HOME/etc/$relative" ]]; then
+            if [[ $untracked_count -eq 0 ]]; then
+                echo -e "${YELLOW}Untracked modified configs found:${NC}"
+            fi
+            echo -e "  ${RED}✗${NC} $file ($pkg)"
+            ((untracked_count++))
+        fi
+    done < <(pacman -Qkk "$pkg" 2>&1 | /usr/bin/grep "^backup file:")
+done
+
+if [[ $untracked_count -eq 0 ]]; then
+    echo -e "${GREEN}✓${NC} All modified configs are tracked in ~/etc"
+else
+    echo
+    echo -e "${YELLOW}Consider copying these to ~/etc if they contain custom settings.${NC}"
+    echo -e "Run: ${CYAN}cp /etc/<path> ~/etc/<path>${NC}"
+fi
+echo

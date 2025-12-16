@@ -5,11 +5,12 @@ window {
   opacity: 0.97;
   border: 2px solid @border-color;
 
-  background-color: @background-color;
+  /* background-color: @background-color; */
+  background: alpha(@background-color, 0.85);
 }
 
 label {
-  font-family: 'Hack Nerd Font Mono';
+  font-family: "Hack Nerd Font Mono";
   font-size: 11pt;
 
   color: @label;
@@ -20,9 +21,11 @@ image {
 }
 
 progressbar {
+  min-height: 22px;
   border-radius: 0;
 }
 
 progress {
+  min-height: inherit;
   background-color: @progress;
 }

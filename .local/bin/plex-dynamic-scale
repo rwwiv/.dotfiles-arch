@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# 1. Get the scale of the currently focused monitor from Hyprland
+# We default to 1 if something goes wrong.
+SCALE=$(hyprctl monitors -j | jq -r '.[] | select(.focused) | .scale' || echo "1")
+
+# 2. Optional: Rounding logic
+# Qt usually prefers integers or 0.5 steps.
+# If you use fractional scaling like 1.25, you might want to force it to 1.5 or 1.
+# Uncomment the next line to force integer scaling (ceil):
+SCALE=$(echo "$SCALE" | LC_ALL=C awk '{ printf "%.1f", int($1 * 2 + 0.5) / 2 }')
+
+# 3. Launch Plex with the detected scale
+# We also include the previous fixes (xcb, no-kvantum) just in case overrides fail.
+flatpak run \
+  --env=QT_SCALE_FACTOR="$SCALE" \
+  --env=QT_QPA_PLATFORM=xcb \
+  --unset-env=QT_STYLE_OVERRIDE \
+  tv.plex.PlexDesktop

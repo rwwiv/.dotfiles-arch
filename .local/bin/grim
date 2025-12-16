@@ -1,0 +1,55 @@
+#!/bin/bash
+
+# 1. Parse Args
+OUTPUT_TARGET="stdout"
+OUTPUT_FMT="png"
+ARGS=()
+
+for arg in "$@"; do
+    if [[ "$arg" == "-" ]]; then
+        OUTPUT_TARGET="stdout"
+        continue
+    elif [[ "$arg" =~ \.png$ ]]; then
+        OUTPUT_TARGET="$arg"
+        OUTPUT_FMT="png"
+        continue
+    elif [[ "$arg" =~ \.(jpg|jpeg)$ ]]; then
+        OUTPUT_TARGET="$arg"
+        OUTPUT_FMT="jpeg"
+        continue
+    fi
+    ARGS+=("$arg")
+done
+
+# 2. Detect Monitor Preset and Set Colorspace
+PRESET=$(hyprctl monitors -j | jq -r '.[] | select(.focused) | .colorManagementPreset // "srgb"')
+
+# Map Hyprland presets to ImageMagick colorspaces
+# Presets: auto, srgb, dcip3, dp3, adobe, wide, edid, hdr, hdredid
+case "$PRESET" in
+    dp3)
+        # Apple Display P3 (D65 white point)
+        CONVERT_CMD="/usr/bin/magick png:- -set colorspace DisplayP3 -colorspace sRGB $OUTPUT_FMT:-"
+        ;;
+    adobe)
+        # Adobe RGB 1998
+        CONVERT_CMD="/usr/bin/magick png:- -set colorspace Adobe98 -colorspace sRGB $OUTPUT_FMT:-"
+        ;;
+    *)
+        # srgb, auto, dcip3, wide, hdr, hdredid, edid, unknown - no conversion
+        # (dcip3 uses DCI white point, wide/hdr use BT.2020 - would need ICC profiles)
+        CONVERT_CMD=""
+        ;;
+esac
+
+# 3. Execute Capture
+if [[ -n "$CONVERT_CMD" ]]; then
+    notify-send -t 1500 -u low -a "Grim" "Screenshot" "Capturing and processing..."
+    /usr/bin/grim "${ARGS[@]}" - | eval "$CONVERT_CMD"
+else
+    if [[ "$OUTPUT_TARGET" == "stdout" ]]; then
+        /usr/bin/grim "${ARGS[@]}" -
+    else
+        /usr/bin/grim "${ARGS[@]}" "$OUTPUT_TARGET"
+    fi
+fi

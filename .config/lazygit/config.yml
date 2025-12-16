@@ -1,4 +1,5 @@
 git:
+  ignoreWhitespaceInDiffView: true
   pagers:
     - colorArg: always
       # We tell delta to behave nicely inside a side-pane

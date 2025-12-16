@@ -1,5 +1,8 @@
-#!/bin/bash
-# This wrapper opens yazi, waits for selection, and prints the path
+#!/usr/bin/env bash
+#
+# Yazi file picker wrapper for termfilechooser
 # $1 is the output file path termfilechooser expects
 
-yazi --chooser-file="$1"
+set -euo pipefail
+
+exec yazi --chooser-file="$1"

@@ -1,4 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#
+# Toggle Do Not Disturb mode in Mako and sync with PipeWire metadata
+
+set -euo pipefail
 
 makoctl mode -t do-not-disturb
 
@@ -8,4 +12,4 @@ else
     pw-metadata -n default 0 dnd-mode false
 fi
 
-pkill -SIGRTMIN+8 waybar
+pkill -SIGRTMIN+8 waybar || true

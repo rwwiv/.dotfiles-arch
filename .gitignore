@@ -20,6 +20,7 @@
 *local*
 !*local*/
 !**/*local*/
+!local.patch
 
 # Backup directories
 dotfiles-backup-*/
@@ -29,3 +30,12 @@ dotfiles-backup-*/
 .local/bin/claude
 
 **/__pycache__/
+
+# Encrypted files (don't track plaintext versions)
+.ssh/keys/*
+!.ssh/keys/*.pub           # Track public key files in plaintext
+.config/wireguard/*.conf
+
+# local only bits
+.config/nvim/lua/plugins/theme.lua
+.local/share/easyeffects/autoload/output/

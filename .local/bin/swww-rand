@@ -1,7 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#
+# Set a random wallpaper using swww, cycling through all wallpapers before repeating
 
-WALLPAPER_DIR="$HOME/.config/omarchy/current/theme/backgrounds/"
-CURRENT_WALL="$HOME/.config/omarchy/current/background"
+set -euo pipefail
+
+WALLPAPER_DIR="$HOME/Wallpapers"
+CURRENT_WALL="$HOME/.config/wallpaper"
 HISTORY_FILE="$HOME/.cache/swww-rand-history"
 
 # Ensure cache directory exists
@@ -9,11 +13,11 @@ mkdir -p "$(dirname "$HISTORY_FILE")"
 
 # Get all available wallpapers
 ALL_WALLS=$(find "$WALLPAPER_DIR" -type f)
-TOTAL_COUNT=$(echo "$ALL_WALLS" | wc -l)
 
 # Get wallpapers not yet used (not in history)
+UNUSED_WALLS=""
 if [[ -f "$HISTORY_FILE" ]]; then
-    UNUSED_WALLS=$(echo "$ALL_WALLS" | grep -vxFf "$HISTORY_FILE")
+    UNUSED_WALLS=$(printf '%s' "$ALL_WALLS" | grep -vxFf "$HISTORY_FILE" || true)
 else
     UNUSED_WALLS="$ALL_WALLS"
 fi
@@ -25,10 +29,10 @@ if [[ -z "$UNUSED_WALLS" ]]; then
 fi
 
 # Pick a random wallpaper from unused ones
-NEW_WALL=$(echo "$UNUSED_WALLS" | shuf -n 1)
+NEW_WALL=$(printf '%s' "$UNUSED_WALLS" | shuf -n 1)
 
 # Add to history
-echo "$NEW_WALL" >> "$HISTORY_FILE"
+printf '%s\n' "$NEW_WALL" >> "$HISTORY_FILE"
 
 ln -nsf "$NEW_WALL" "$CURRENT_WALL"
 swww img "$NEW_WALL" --transition-type fade --transition-duration 1

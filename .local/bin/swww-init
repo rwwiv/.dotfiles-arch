@@ -1,23 +1,27 @@
 #!/usr/bin/env python3
+"""Initialize swww wallpaper daemon and handle monitor hotplug events."""
+
+from __future__ import annotations
+
 import asyncio
-import sys
-import os
-import subprocess
 import signal
+import subprocess
+import sys
+from pathlib import Path
 
 # Expand path for library
-sys.path.append(os.path.expanduser("~/.config/hypr/scripts/lib"))
-from hyprland_ipc import Hyprland
+sys.path.append(str(Path.home() / ".config/hypr/scripts/lib"))
+from hyprland_ipc import Hyprland  # noqa: E402
 
 # Config
-WALLPAPER_PATH = os.path.expanduser("~/.config/omarchy/current/background")
-SWAYBG_TIMEOUT = 10
+WALLPAPER_PATH = Path.home() / ".config/wallpaper"
 
-h = Hyprland()
+hyprland = Hyprland()
+wallpaper_task: asyncio.Task | None = None
 
 
 async def init_swww() -> None:
-    """Ensures daemon is running. If started here, it survives this script (orphaned intentional)."""
+    """Ensure swww daemon is running. If started here, it survives this script."""
     try:
         proc = await asyncio.create_subprocess_exec(
             "pgrep", "-x", "swww-daemon", stdout=asyncio.subprocess.DEVNULL
@@ -27,7 +31,9 @@ async def init_swww() -> None:
         if proc.returncode != 0:
             # Popen spawns it as a detached process relative to asyncio loop
             subprocess.Popen(
-                ["swww-daemon"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                ["swww-daemon"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
             )
             await asyncio.sleep(1.0)
     except Exception:
@@ -35,13 +41,13 @@ async def init_swww() -> None:
 
 
 async def set_wallpaper() -> None:
-    if not os.path.exists(WALLPAPER_PATH):
+    """Set the wallpaper using swww."""
+    if not WALLPAPER_PATH.exists():
         return
 
     try:
-        # Fire and forget
         subprocess.Popen(
-            ["swww", "img", WALLPAPER_PATH, "--transition-type", "none"],
+            ["swww", "img", str(WALLPAPER_PATH), "--transition-type", "none"],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
@@ -49,35 +55,35 @@ async def set_wallpaper() -> None:
         pass
 
 
-# Add to global scope
-wallpaper_task = None
-
-
-async def delayed_paint():
+async def delayed_paint() -> None:
+    """Wait for displays to settle, then set wallpaper."""
     try:
-        await asyncio.sleep(1.0)  # Wait 1s for displays to align
+        await asyncio.sleep(1.0)
         await set_wallpaper()
     except asyncio.CancelledError:
         pass
 
 
-@h.on("monitoraddedv2")
+@hyprland.on("monitoraddedv2")
 async def handle_monitor_hotplug(ctx: Hyprland, data: str) -> None:
+    """Handle monitor hotplug by refreshing wallpaper."""
     global wallpaper_task
-    if wallpaper_task:
+    if wallpaper_task is not None:
         wallpaper_task.cancel()
     wallpaper_task = asyncio.create_task(delayed_paint())
 
 
-async def shutdown(signal_loop):
-    """Cleanup tasks on SIGTERM"""
+async def shutdown(loop: asyncio.AbstractEventLoop) -> None:
+    """Clean up tasks on SIGTERM."""
     tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
-    [task.cancel() for task in tasks]
+    for task in tasks:
+        task.cancel()
     await asyncio.gather(*tasks, return_exceptions=True)
-    signal_loop.stop()
+    loop.stop()
 
 
 def main() -> None:
+    """Main entry point."""
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
@@ -88,9 +94,8 @@ def main() -> None:
     try:
         loop.run_until_complete(init_swww())
         loop.run_until_complete(set_wallpaper())
-
         # Start IPC listener
-        loop.run_until_complete(h._listen())
+        loop.run_until_complete(hyprland._listen())
     except asyncio.CancelledError:
         pass
     finally:

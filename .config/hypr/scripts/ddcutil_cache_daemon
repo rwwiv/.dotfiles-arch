@@ -13,18 +13,37 @@ h = Hyprland()
 # Timer task reference
 debounce_task = None
 
+MAX_RETRIES = 5
+RETRY_DELAY = 2.0
+
 async def run_heavy_detect():
     print("[DDC] Settled. Running detection...")
-    try:
-        proc = await asyncio.create_subprocess_exec(
-            "ddcutil-client", "detect",
-            stdout=asyncio.subprocess.DEVNULL,
-            stderr=asyncio.subprocess.DEVNULL
-        )
-        await proc.wait()
-        print("[DDC] Detection complete.")
-    except Exception as e:
-        print(f"[DDC] Failed: {e}")
+
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                "ddcutil-client", "detect",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.DEVNULL
+            )
+            stdout, _ = await proc.communicate()
+            output = stdout.decode()
+
+            # Check if any displays were found
+            if "number_of_displays: 0" in output or "number_of_displays:" not in output:
+                print(f"[DDC] Attempt {attempt}/{MAX_RETRIES}: No displays found, retrying in {RETRY_DELAY}s...")
+                await asyncio.sleep(RETRY_DELAY)
+                continue
+
+            print(f"[DDC] Detection complete (attempt {attempt}).")
+            return
+
+        except Exception as e:
+            print(f"[DDC] Attempt {attempt}/{MAX_RETRIES} failed: {e}")
+            if attempt < MAX_RETRIES:
+                await asyncio.sleep(RETRY_DELAY)
+
+    print(f"[DDC] Detection failed after {MAX_RETRIES} attempts.")
 
 @h.on("monitoraddedv2")
 async def schedule_refresh(ctx: Hyprland, data: str) -> None:

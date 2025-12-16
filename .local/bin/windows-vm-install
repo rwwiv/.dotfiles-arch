@@ -1,0 +1,201 @@
+#!/bin/bash
+# Windows VM installation script
+# Creates a Windows 11 VM using Docker (dockurr/windows)
+
+set -e
+
+COMPOSE_FILE="$HOME/.config/windows/docker-compose.yml"
+OMARCHY_PATH="${OMARCHY_PATH:-$HOME/.local/share/omarchy}"
+
+# Colors
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+MAGENTA='\033[0;35m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+print_success() { echo -e "${GREEN}✓${NC} $1"; }
+print_warning() { echo -e "${YELLOW}⚠${NC} $1"; }
+print_error() { echo -e "${RED}✗${NC} $1"; }
+print_info() { echo -e "${MAGENTA}→${NC} $1"; }
+
+# Simple prompt with default value
+prompt() {
+	local prompt="$1"
+	local default="$2"
+	local value
+
+	echo -en "${CYAN}?${NC} ${prompt} [${default}]: "
+	read -r value
+	echo "${value:-$default}"
+}
+
+# Password prompt (masked)
+prompt_password() {
+	local prompt="$1"
+	local default="$2"
+	local value
+
+	echo -en "${CYAN}?${NC} ${prompt} [${default}]: "
+	read -rs value
+	echo
+	echo "${value:-$default}"
+}
+
+# Yes/no prompt
+prompt_yn() {
+	local prompt="$1"
+	local default="${2:-y}"
+	local yn_hint="[Y/n]"
+	[[ "$default" != "y" ]] && yn_hint="[y/N]"
+
+	echo -en "${CYAN}?${NC} ${prompt} ${yn_hint} "
+	read -r response
+	[[ -z "$response" ]] && response="$default"
+
+	[[ "$response" =~ ^[yY] ]]
+}
+
+# Extract numeric value from size string (e.g., "64G" -> 64)
+get_size_num() {
+	echo "$1" | sed 's/[^0-9]//g'
+}
+
+check_prerequisites() {
+	local disk_size="$1"
+	local DISK_SIZE_GB
+	DISK_SIZE_GB=$(get_size_num "$disk_size")
+	local REQUIRED_SPACE=$((DISK_SIZE_GB + 10))
+
+	# Check for KVM support
+	if [[ ! -e /dev/kvm ]]; then
+		print_error "KVM virtualization not available!"
+		echo "Please enable virtualization in BIOS or run:"
+		echo "  sudo modprobe kvm-intel  # for Intel CPUs"
+		echo "  sudo modprobe kvm-amd    # for AMD CPUs"
+		return 1
+	fi
+	print_success "KVM virtualization available"
+
+	# Check disk space
+	AVAILABLE_SPACE=$(df "$HOME" | awk 'NR==2 {print int($4/1024/1024)}')
+	if [[ "$AVAILABLE_SPACE" -lt "$REQUIRED_SPACE" ]]; then
+		print_error "Insufficient disk space!"
+		echo "   Available: ${AVAILABLE_SPACE}GB"
+		echo "   Required: ${REQUIRED_SPACE}GB (${DISK_SIZE_GB}GB disk + 10GB for Windows image)"
+		return 1
+	fi
+	print_success "Disk space OK (${AVAILABLE_SPACE}GB available)"
+
+	return 0
+}
+
+install_windows() {
+	echo
+	echo "Windows VM Installation"
+	echo "======================="
+	echo
+
+	# Prompt for configuration
+	RAM=$(prompt "RAM allocation" "16G")
+	CORES=$(prompt "CPU cores" "4")
+	DISK=$(prompt "Disk size" "128G")
+	USERNAME=$(prompt "Windows username" "docker")
+	PASSWORD=$(prompt_password "Windows password" "admin")
+
+	echo
+	echo "Configuration:"
+	echo "  RAM:      $RAM"
+	echo "  CPU:      $CORES cores"
+	echo "  Disk:     $DISK"
+	echo "  Username: $USERNAME"
+	echo "  Password: ****"
+	echo
+
+	# Check prerequisites
+	if ! check_prerequisites "$DISK"; then
+		return 1
+	fi
+
+	# Check if already configured
+	if [[ -f "$COMPOSE_FILE" ]]; then
+		print_warning "Existing configuration found at $COMPOSE_FILE"
+		if ! prompt_yn "Overwrite?" "n"; then
+			print_info "Keeping existing configuration"
+			return 0
+		fi
+	fi
+
+	# Install required packages
+	print_info "Ensuring required packages are installed..."
+	if command -v paru &>/dev/null; then
+		paru -S --needed --noconfirm freerdp openbsd-netcat 2>/dev/null || true
+	fi
+
+	# Create directories
+	mkdir -p "$HOME/.windows"
+	mkdir -p "$HOME/.config/windows"
+	mkdir -p "$HOME/.local/share/applications/icons"
+	mkdir -p "$HOME/Windows"
+
+	# Install Windows VM icon
+	if [[ -f "$OMARCHY_PATH/applications/icons/windows.png" ]]; then
+		cp "$OMARCHY_PATH/applications/icons/windows.png" "$HOME/.local/share/applications/icons/windows.png"
+		print_success "Copied Windows VM icon"
+	fi
+
+	# Create desktop entry
+	cat << EOF > "$HOME/.local/share/applications/windows-vm.desktop"
+[Desktop Entry]
+Name=Windows
+Comment=Start Windows VM via Docker and connect with RDP
+Exec=uwsm app -- omarchy-windows-vm launch
+Icon=$HOME/.local/share/applications/icons/windows.png
+Terminal=false
+Type=Application
+Categories=System;Virtualization;
+EOF
+	print_success "Created desktop entry"
+
+	# Create docker-compose.yml
+	cat << EOF > "$COMPOSE_FILE"
+services:
+  windows:
+    image: dockurr/windows
+    container_name: omarchy-windows
+    environment:
+      VERSION: "11"
+      RAM_SIZE: "$RAM"
+      CPU_CORES: "$CORES"
+      DISK_SIZE: "$DISK"
+      USERNAME: "$USERNAME"
+      PASSWORD: "$PASSWORD"
+    devices:
+      - /dev/kvm
+      - /dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - 8006:8006
+      - 3389:3389/tcp
+      - 3389:3389/udp
+    volumes:
+      - $HOME/.windows:/storage
+      - $HOME/Windows:/shared
+    restart: always
+    stop_grace_period: 2m
+EOF
+	print_success "Created docker-compose configuration"
+
+	echo
+	print_success "Windows VM configured successfully!"
+	echo
+	echo "To start and connect: omarchy-windows-vm launch"
+	echo "To check status:      omarchy-windows-vm status"
+	echo
+	echo "Note: First launch will download Windows 11 image (~6GB)"
+	echo "Monitor progress at: http://127.0.0.1:8006"
+}
+
+install_windows

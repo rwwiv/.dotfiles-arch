@@ -1,0 +1,22 @@
+#!/bin/bash
+
+POWERPROFILESCTL=/home/rwwiv/.local/bin/powerprofilesctl
+
+current=$($POWERPROFILESCTL get)
+mapfile -t profiles < <($POWERPROFILESCTL list | awk '/^\s*[* ]\s*[a-zA-Z0-9\-]+:$/ { gsub(/^[*[:space:]]+|:$/,""); print }' | tac)
+
+count=${#profiles[@]}
+
+for i in "${!profiles[@]}"; do
+    if [[ "${profiles[$i]}" == "$current" ]]; then
+        next_idx=$(( (i + 1) % count ))
+        next="${profiles[$next_idx]}"
+        $POWERPROFILESCTL set "$next"
+        echo "$next"
+        exit 0
+    fi
+done
+
+# Fallback if current not found
+$POWERPROFILESCTL set "${profiles[0]}"
+echo "${profiles[0]}"

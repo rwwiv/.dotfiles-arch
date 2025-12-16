@@ -1,0 +1,113 @@
+#!/usr/bin/env python3
+# @systemd
+"""
+Hyprmon Profile Switcher
+
+Automatically loads hyprmon profiles based on external display connectivity:
+- 'work' profile when more than 1 monitor is connected
+- 'laptop' profile when only 1 monitor is connected
+"""
+import asyncio
+import json
+import sys
+import os
+
+sys.path.append(os.path.expanduser("~/.config/hypr/scripts/lib"))
+from hyprland_ipc import Hyprland
+
+h = Hyprland()
+
+# Configuration
+PROFILE_SINGLE = "laptop"  # Profile for laptop display only
+PROFILE_MULTI = "work"     # Profile for external display(s) connected
+
+# Debounce settings
+debounce_task = None
+DEBOUNCE_DELAY = 2.0  # Seconds to wait for monitor events to settle
+
+
+async def get_monitor_count() -> int:
+    """Query Hyprland for the current number of connected monitors."""
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "hyprctl", "monitors", "-j",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.DEVNULL
+        )
+        stdout, _ = await proc.communicate()
+        monitors = json.loads(stdout.decode())
+        return len(monitors)
+    except Exception as e:
+        print(f"[HyprmonSwitcher] Error getting monitor count: {e}", file=sys.stderr)
+        return 0
+
+
+async def load_profile(profile: str) -> None:
+    """Load a hyprmon profile."""
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "hyprmon", "--profile", profile,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        _, stderr = await proc.communicate()
+
+        if proc.returncode == 0:
+            print(f"[HyprmonSwitcher] Loaded profile: {profile}")
+        else:
+            error = stderr.decode().strip()
+            print(f"[HyprmonSwitcher] Failed to load profile '{profile}': {error}", file=sys.stderr)
+    except Exception as e:
+        print(f"[HyprmonSwitcher] Error loading profile: {e}", file=sys.stderr)
+
+
+async def check_and_switch() -> None:
+    """Check monitor count and switch to appropriate profile."""
+    count = await get_monitor_count()
+    print(f"[HyprmonSwitcher] Monitor count: {count}")
+
+    if count > 1:
+        await load_profile(PROFILE_MULTI)
+    elif count == 1:
+        await load_profile(PROFILE_SINGLE)
+    else:
+        print("[HyprmonSwitcher] No monitors detected, skipping profile switch")
+
+
+async def wait_and_switch() -> None:
+    """Debounced profile switching."""
+    try:
+        await asyncio.sleep(DEBOUNCE_DELAY)
+        await check_and_switch()
+    except asyncio.CancelledError:
+        pass
+
+
+def schedule_switch() -> None:
+    """Schedule a debounced profile switch."""
+    global debounce_task
+
+    if debounce_task:
+        debounce_task.cancel()
+
+    debounce_task = asyncio.create_task(wait_and_switch())
+
+
+@h.on("monitoraddedv2")
+async def on_monitor_added(ctx: Hyprland, data: str) -> None:
+    """Handle monitor connection."""
+    print(f"[HyprmonSwitcher] Monitor added: {data}. Debouncing...")
+    schedule_switch()
+
+
+@h.on("monitorremoved")
+async def on_monitor_removed(ctx: Hyprland, data: str) -> None:
+    """Handle monitor disconnection."""
+    print(f"[HyprmonSwitcher] Monitor removed: {data}. Debouncing...")
+    schedule_switch()
+
+
+if __name__ == "__main__":
+    # Run initial check on startup
+    asyncio.run(check_and_switch())
+    h.run()

@@ -1,0 +1,141 @@
+#!/usr/bin/env python3
+"""Move images smaller than a specified resolution into a subfolder."""
+
+from __future__ import annotations
+
+import argparse
+import os
+import re
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+
+def get_image_size(filepath: Path) -> tuple[int, int] | None:
+    """
+    Attempt to get image dimensions using PIL, falling back to the 'file' command.
+
+    Returns:
+        Tuple of (width, height) or None if size cannot be determined.
+    """
+    # Try PIL first if available
+    try:
+        from PIL import Image
+
+        with Image.open(filepath) as img:
+            return img.size
+    except ImportError:
+        pass
+    except Exception:
+        # Not an image readable by PIL or PIL error
+        pass
+
+    # Fallback to 'file' command
+    try:
+        result = subprocess.check_output(
+            ["file", str(filepath)], stderr=subprocess.STDOUT, text=True
+        )
+
+        # Common patterns: "1920 x 1080" or "1920x1080"
+        # PNG style often has commas around dimensions
+        match = re.search(r", (\d+)\s*x\s*(\d+),", result)
+        if not match:
+            match = re.search(r"(\d+)\s*x\s*(\d+)", result)
+
+        if match:
+            return int(match.group(1)), int(match.group(2))
+    except Exception:
+        pass
+
+    return None
+
+
+def parse_args() -> argparse.Namespace:
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(
+        description="Move images smaller than a specified resolution into a subfolder."
+    )
+    parser.add_argument(
+        "--size",
+        required=True,
+        help="Target resolution in WxH format (e.g., 3840x2160)",
+    )
+    parser.add_argument(
+        "--dir",
+        default=".",
+        help="Directory to scan (default: current directory)",
+    )
+    parser.add_argument(
+        "--out",
+        required=True,
+        help="Output subdirectory name for smaller images",
+    )
+    return parser.parse_args()
+
+
+def main() -> int:
+    """Main entry point."""
+    args = parse_args()
+
+    # Parse size
+    try:
+        target_w_str, target_h_str = args.size.lower().split("x")
+        target_w = int(target_w_str)
+        target_h = int(target_h_str)
+    except ValueError:
+        print("Error: --size must be in WxH format (e.g., 3840x2160)", file=sys.stderr)
+        return 1
+
+    source_dir = Path(args.dir).resolve()
+    out_dir = source_dir / args.out
+
+    if not source_dir.exists():
+        print(f"Error: Source directory '{source_dir}' does not exist.", file=sys.stderr)
+        return 1
+
+    # Create output directory if it doesn't exist
+    try:
+        out_dir.mkdir(parents=True, exist_ok=True)
+        if out_dir.exists():
+            print(f"Output directory: {out_dir}")
+    except OSError as e:
+        print(f"Error creating output directory: {e}", file=sys.stderr)
+        return 1
+
+    moved_count = 0
+    checked_count = 0
+
+    print(f"Scanning '{source_dir}' for images smaller than {target_w}x{target_h}...")
+
+    for filepath in source_dir.iterdir():
+        # Skip directories and the output directory itself
+        if not filepath.is_file():
+            continue
+
+        # Skip this script if it's in the folder
+        if filepath.name == Path(__file__).name:
+            continue
+
+        size = get_image_size(filepath)
+
+        if size:
+            checked_count += 1
+            width, height = size
+
+            # Check if smaller (strictly smaller in either dimension)
+            # If the goal is "at least X by Y", then if w < X or h < Y, it's too small.
+            if width < target_w or height < target_h:
+                try:
+                    shutil.move(filepath, out_dir / filepath.name)
+                    print(f"Moved: {filepath.name} ({width}x{height})")
+                    moved_count += 1
+                except Exception as e:
+                    print(f"Failed to move {filepath.name}: {e}", file=sys.stderr)
+
+    print(f"\nSummary: Checked {checked_count} images. Moved {moved_count} images to '{args.out}'.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,73 +1,90 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#
+# OCR Grab - Capture screen region and extract text using Tesseract
+# Usage: ocr-grab [region|windows|fullscreen|smart]
+
+set -euo pipefail
 
 # Dependency Check
-if ! command -v tesseract &> /dev/null; then
+if ! command -v tesseract &>/dev/null; then
     notify-send "OCR Error" "Tesseract not found. Install 'tesseract' and 'tesseract-data-eng'" -u critical
     exit 1
 fi
 
 # Allow cancelling by running again
-pkill slurp && exit 0
+if pkill slurp 2>/dev/null; then
+    exit 0
+fi
 
 MODE="${1:-smart}"
 
 get_rectangles() {
-  local active_workspace
-  active_workspace=$(hyprctl monitors -j | jq -r '.[] | select(.focused == true) | .activeWorkspace.id')
-  hyprctl monitors -j | jq -r --arg ws "$active_workspace" '.[] | select(.activeWorkspace.id == ($ws | tonumber)) | "\(.x),\(.y) \((.width / .scale) | floor)x\((.height / .scale) | floor)"'
-  hyprctl clients -j | jq -r --arg ws "$active_workspace" '.[] | select(.workspace.id == ($ws | tonumber)) | "\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"'
+    local active_workspace
+    active_workspace=$(hyprctl monitors -j | jq -r '.[] | select(.focused == true) | .activeWorkspace.id')
+    hyprctl monitors -j | jq -r --arg ws "$active_workspace" '.[] | select(.activeWorkspace.id == ($ws | tonumber)) | "\(.x),\(.y) \((.width / .scale) | floor)x\((.height / .scale) | floor)"'
+    hyprctl clients -j | jq -r --arg ws "$active_workspace" '.[] | select(.workspace.id == ($ws | tonumber)) | "\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"'
 }
+
+SELECTION=""
+PID=""
+
+cleanup() {
+    if [[ -n "$PID" ]] && kill -0 "$PID" 2>/dev/null; then
+        kill "$PID" 2>/dev/null || true
+    fi
+}
+trap cleanup EXIT
 
 # Select based on mode
 case "$MODE" in
-  region)
-    wayfreeze & PID=$!
-    sleep .1
-    SELECTION=$(slurp 2>/dev/null)
-    kill $PID 2>/dev/null
-    ;;
-  windows)
-    wayfreeze & PID=$!
-    sleep .1
-    SELECTION=$(get_rectangles | slurp -r 2>/dev/null)
-    kill $PID 2>/dev/null
-    ;;
-  fullscreen)
-    SELECTION=$(hyprctl monitors -j | jq -r '.[] | select(.focused == true) | "\(.x),\(.y) \((.width / .scale) | floor)x\((.height / .scale) | floor)"')
-    ;;
-  smart|*)
-    RECTS=$(get_rectangles)
-    wayfreeze & PID=$!
-    sleep .1
-    SELECTION=$(echo "$RECTS" | slurp 2>/dev/null)
-    kill $PID 2>/dev/null
+    region)
+        wayfreeze &
+        PID=$!
+        sleep 0.1
+        SELECTION=$(slurp 2>/dev/null) || true
+        ;;
+    windows)
+        wayfreeze &
+        PID=$!
+        sleep 0.1
+        SELECTION=$(get_rectangles | slurp -r 2>/dev/null) || true
+        ;;
+    fullscreen)
+        SELECTION=$(hyprctl monitors -j | jq -r '.[] | select(.focused == true) | "\(.x),\(.y) \((.width / .scale) | floor)x\((.height / .scale) | floor)"')
+        ;;
+    smart|*)
+        RECTS=$(get_rectangles)
+        wayfreeze &
+        PID=$!
+        sleep 0.1
+        SELECTION=$(printf '%s' "$RECTS" | slurp 2>/dev/null) || true
 
-    # "Smart Click" Logic from Omarchy
-    # If selection < 20px area, treat it as a click and find the window/monitor under cursor
-    if [[ "$SELECTION" =~ ^([0-9]+),([0-9]+)[[:space:]]([0-9]+)x([0-9]+)$ ]]; then
-      if (( BASH_REMATCH[3] * BASH_REMATCH[4] < 20 )); then
-        click_x="${BASH_REMATCH[1]}"
-        click_y="${BASH_REMATCH[2]}"
+        # "Smart Click" Logic from Omarchy
+        # If selection < 20px area, treat it as a click and find the window/monitor under cursor
+        if [[ "$SELECTION" =~ ^([0-9]+),([0-9]+)[[:space:]]([0-9]+)x([0-9]+)$ ]]; then
+            if (( BASH_REMATCH[3] * BASH_REMATCH[4] < 20 )); then
+                click_x="${BASH_REMATCH[1]}"
+                click_y="${BASH_REMATCH[2]}"
 
-        while IFS= read -r rect; do
-          if [[ "$rect" =~ ^([0-9]+),([0-9]+)[[:space:]]([0-9]+)x([0-9]+) ]]; then
-            rect_x="${BASH_REMATCH[1]}"
-            rect_y="${BASH_REMATCH[2]}"
-            rect_width="${BASH_REMATCH[3]}"
-            rect_height="${BASH_REMATCH[4]}"
+                while IFS= read -r rect; do
+                    if [[ "$rect" =~ ^([0-9]+),([0-9]+)[[:space:]]([0-9]+)x([0-9]+) ]]; then
+                        rect_x="${BASH_REMATCH[1]}"
+                        rect_y="${BASH_REMATCH[2]}"
+                        rect_width="${BASH_REMATCH[3]}"
+                        rect_height="${BASH_REMATCH[4]}"
 
-            if (( click_x >= rect_x && click_x < rect_x+rect_width && click_y >= rect_y && click_y < rect_y+rect_height )); then
-              SELECTION="${rect_x},${rect_y} ${rect_width}x${rect_height}"
-              break
+                        if (( click_x >= rect_x && click_x < rect_x+rect_width && click_y >= rect_y && click_y < rect_y+rect_height )); then
+                            SELECTION="${rect_x},${rect_y} ${rect_width}x${rect_height}"
+                            break
+                        fi
+                    fi
+                done <<< "$RECTS"
             fi
-          fi
-        done <<< "$RECTS"
-      fi
-    fi
-    ;;
+        fi
+        ;;
 esac
 
-[ -z "$SELECTION" ] && exit 0
+[[ -z "$SELECTION" ]] && exit 0
 
 # ---------------------------------------------------------
 # OCR PROCESSING
@@ -78,13 +95,13 @@ notify-send "OCR" "Processing..." -t 1000 -i scanner
 # 1. Capture selection with grim
 # 2. Pipe to tesseract (specify English, use stdin/stdout)
 # 3. Capture output to variable
-TEXT=$(grim -g "$SELECTION" - | tesseract -l eng stdin stdout 2>/dev/null)
+TEXT=$(grim -g "$SELECTION" - | tesseract -l eng stdin stdout 2>/dev/null) || TEXT=""
 
-# Clean up whitespace (optional, but helpful)
-TEXT_CLEAN=$(echo "$TEXT" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+# Clean up whitespace
+TEXT_CLEAN=$(printf '%s' "$TEXT" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
 
-if [ -n "$TEXT_CLEAN" ]; then
-    echo "$TEXT_CLEAN" | wl-copy
+if [[ -n "$TEXT_CLEAN" ]]; then
+    printf '%s' "$TEXT_CLEAN" | wl-copy
     notify-send "OCR Success" "Copied to clipboard" -i edit-paste
 else
     notify-send "OCR Failed" "No text detected" -u low -i dialog-warning

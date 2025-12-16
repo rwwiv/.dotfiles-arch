@@ -1,7 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#
 # Toggles hiding waybar on the currently focused monitor
 
-set -e
+set -euo pipefail
 
 CONFIG_FILE="$HOME/.config/waybar/config.jsonc"
 OUTPUT_KEY="output"

@@ -1,0 +1,13 @@
+# Packages from omarchy-base.packages to remove
+# These diverge from defaults we don't want/use
+
+avahi              # mDNS - using systemd-resolved instead
+fcitx5-gtk         # Input method - not needed
+fcitx5-qt          # Input method - not needed
+system-config-printer  # CUPS GUI - using command line
+tldr               # Using tealdeer instead (different package)
+yay                # Using paru with symlink instead
+
+# Conditional removal - only remove if TLP is installed
+# (handled in yadm bootstrap script)
+power-profiles-daemon  # Conflicts with TLP - using TLP instead

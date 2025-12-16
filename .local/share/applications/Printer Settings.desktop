@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Name=Printer Settings
+Comment=Printer Settings
+Exec=omarchy-launch-webapp http://localhost:631/admin
+Terminal=false
+Type=Application
+Icon=printer
+StartupNotify=true

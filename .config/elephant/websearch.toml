@@ -1,0 +1,5 @@
+[[entries]]
+name = "Google"
+icon = "google" # or "google-chrome", "web-browser", etc.
+url = "https://www.google.com/search?q=%TERM%"
+default = true

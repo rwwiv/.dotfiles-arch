@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# Simple shim to make TLP 1.9 look like PPD for scripts
+# Usage: powerprofilesctl set [profile] | get
+
+command=$1
+arg=$2
+
+case "$command" in
+    set)
+        # Pass the profile name directly to tlpctl
+        tlpctl set "$arg"
+        ;;
+    get)
+        # tlpctl get returns just the name, similar to powerprofilesctl
+        tlpctl get
+        ;;
+    list)
+        # Output might differ slightly, but usually scripts just grep this
+        tlpctl list
+        ;;
+    *)
+        echo "Shim: Command not supported by tlpctl wrapper"
+        exit 1
+        ;;
+esac

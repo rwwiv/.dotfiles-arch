@@ -1,20 +1,24 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#
+# Waybar indicator for Mako Do Not Disturb mode
+
+set -euo pipefail
 
 icon=""
 tooltip=""
 class=""
 
-# ensure pw-metadata follows mako state
+# Ensure pw-metadata follows mako state
 if makoctl mode | grep -q 'do-not-disturb'; then
-    pw-metadata -n default 0 dnd-mode true &>/dev/null
+    pw-metadata -n default 0 dnd-mode true &>/dev/null || true
     icon="󰪑"
     tooltip="Focus mode on"
     class="dnd-on"
 else
-    pw-metadata -n default 0 dnd-mode false &>/dev/null
+    pw-metadata -n default 0 dnd-mode false &>/dev/null || true
     icon="󰂜"
     tooltip="Focus mode off"
     class="dnd-off"
 fi
 
-echo "{\"text\": \"$icon\", \"tooltip\": \"$tooltip\", \"class\": \"$class\"}"
+printf '{"text": "%s", "tooltip": "%s", "class": "%s"}\n' "$icon" "$tooltip" "$class"

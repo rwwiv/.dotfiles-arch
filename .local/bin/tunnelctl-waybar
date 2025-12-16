@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+
+# Waybar custom module for tunnelctl
+# Output JSON: {"text": "...", "tooltip": "...", "class": "..."}
+#
+# Waybar config example:
+#   "custom/tunnels": {
+#     "exec": "tunnelctl-waybar",
+#     "return-type": "json",
+#     "interval": 5
+#   }
+
+: "${SSH_TUNNEL_PIDDIR:=$HOME/.cache/ssh-tunnels}"
+
+active_tunnels=()
+stale_tunnels=()
+
+# Enable nullglob to handle empty directory
+shopt -s nullglob
+
+for pidfile in "$SSH_TUNNEL_PIDDIR"/*.pid; do
+  name=$(basename "$pidfile" .pid)
+  pid="$(<"$pidfile")"
+  metafile="$SSH_TUNNEL_PIDDIR/$name.meta"
+
+  host="" local_port="" remote_port=""
+  if [[ -f "$metafile" ]]; then
+    # shellcheck disable=SC1090
+    source "$metafile"
+  fi
+
+  if [[ -n "$pid" && -d "/proc/$pid" ]]; then
+    if [[ -n "$host" ]]; then
+      active_tunnels+=("$name: localhost:$local_port → $host:$remote_port")
+    else
+      active_tunnels+=("$name: running (pid $pid)")
+    fi
+  else
+    stale_tunnels+=("$name: stale")
+  fi
+done
+
+shopt -u nullglob
+
+count=${#active_tunnels[@]}
+
+# Build tooltip
+tooltip=""
+if (( count > 0 )); then
+  tooltip="Active tunnels:\\n"
+  for t in "${active_tunnels[@]}"; do
+    tooltip+="  $t\\n"
+  done
+fi
+
+if (( ${#stale_tunnels[@]} > 0 )); then
+  [[ -n "$tooltip" ]] && tooltip+="\\n"
+  tooltip+="Stale tunnels:\\n"
+  for t in "${stale_tunnels[@]}"; do
+    tooltip+="  $t\\n"
+  done
+fi
+
+# Remove trailing newline
+tooltip="${tooltip%\\n}"
+
+# Determine class and text
+if (( count > 0 )); then
+  text="$count 󰣀"
+  class="active"
+else
+  text=""
+  class="inactive"
+fi
+
+# Output JSON for waybar
+# Empty tooltip if no tunnels
+if [[ -z "$tooltip" ]]; then
+  printf '{"text": "%s", "class": "%s"}\n' "$text" "$class"
+else
+  printf '{"text": "%s", "tooltip": "%s", "class": "%s"}\n' "$text" "$tooltip" "$class"
+fi

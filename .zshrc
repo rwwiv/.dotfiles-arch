@@ -6,12 +6,11 @@ setopt appendhistory
 setopt HIST_IGNORE_DUPS
 ulimit -S -n 8000
 
-bindkey -e
 if [[ -n "$SSH_CONNECTION" ]]; then
     echo -e "\e[5 q"
 fi
-PATH="$PATH:$HOME/.local/bin"
-TIMEFMT=$'%J\n%U user\n%S system\n%P cpu\n%E total'
+[[ -f $HOME/.shell_env ]] && source $HOME/.shell_env
+export TIMEFMT=$'%J\n%U user\n%S system\n%P cpu\n%E total'
 
 [[ -r $HOME/znap/znap/znap.zsh ]] ||
     git clone --depth 1 -- https://github.com/marlonrichert/zsh-snap.git $HOME/znap/znap
@@ -23,6 +22,13 @@ if command -v starship &>/dev/null; then
   znap prompt
 fi
 
+znap source Aloxaf/fzf-tab
+znap source zsh-users/zsh-completions
+znap source zsh-users/zsh-autosuggestions
+znap source zsh-users/zsh-syntax-highlighting
+znap source wfxr/forgit
+znap source ohmyzsh/ohmyzsh plugins/{aliases,encode64,extract,git,safe-paste,kubectl,z}
+
 source /usr/share/doc/pkgfile/command-not-found.zsh
 
 if command -v thefuck &>/dev/null; then
@@ -31,10 +37,6 @@ fi
 
 if command -v mise &>/dev/null; then
   znap eval mise "mise activate zsh"
-fi
-
-if command -v zoxide &>/dev/null; then
-  znap eval zoxide "zoxide init zsh"
 fi
 
 if command -v uv &>/dev/null; then
@@ -47,17 +49,11 @@ if command -v atuin &>/dev/null; then
 fi
 
 if command -v zoxide &>/dev/null; then
-  znap eval zoxide "zoxide init zsh --cmd cd"
+  znap eval zoxide "zoxide init zsh --hook pwd"
 fi
 
 if command -v try &>/dev/null; then
   znap eval try "/usr/bin/try init $HOME/scratch"
 fi
 
-[[ -r $HOME/.zsh/conf/rc.zsh ]] && source $HOME/.zsh/conf/rc.zsh
-
-znap source zsh-users/zsh-autosuggestions
-znap source zsh-users/zsh-syntax-highlighting
-znap source wfxr/forgit
-znap source ohmyzsh/ohmyzsh plugins/{aliases,encode64,extract,git,safe-paste,kubectl}
-znap source zsh-users/zsh-completions
+[[ -r $HOME/.zsh/rc.zsh ]] && source $HOME/.zsh/rc.zsh

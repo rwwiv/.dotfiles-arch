@@ -3,6 +3,7 @@
 -- Add any additional keymaps here
 
 local map = vim.keymap.set
+local hostname = vim.uv.os_gethostname()
 
 -- Helix-style selections
 map("n", "%", "ggVG", { desc = "Select entire file" }) -- Helix's %
@@ -87,3 +88,17 @@ map({ "v" }, ">", ">gv", { desc = "Indent right" })
 
 map({ "n", "v" }, "W", "b", { desc = "Backward WORD" })
 map({ "n", "v" }, "E", "ge", { desc = "Backward to end of word" })
+
+map("n", "<leader>o", "o<Esc>", { desc = "Add Line Below (Normal Mode)" })
+map("n", "<leader>O", "O<Esc>", { desc = "Add Line Above (Normal Mode)" })
+
+if hostname == "devbox" then
+  map("n", "<leader>r", function()
+    vim.cmd("mode")
+    vim.opt.mouse = ""
+    vim.defer_fn(function()
+      vim.opt.mouse = "a"
+      print("UI Refreshed")
+    end, 50) -- Slight delay to ensure the sequence flushes
+  end, { desc = "Refresh UI/Mouse" })
+end

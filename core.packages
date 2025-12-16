@@ -1,0 +1,17 @@
+
+# Core packages for headless/SSH systems
+# Editors
+fastfetch
+git
+git-delta
+git-lfs
+jq
+neovim
+networkd-dispatcher
+rsync
+# Shell
+# Shell customization
+starship
+# System utilities
+# Version control
+zsh

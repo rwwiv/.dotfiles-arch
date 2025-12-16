@@ -39,3 +39,4 @@ command = /usr/bin/zsh
 
 # Misc
 clipboard-trim-trailing-spaces = true
+mouse-scroll-multiplier = 2

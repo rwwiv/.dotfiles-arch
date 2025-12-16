@@ -1,0 +1,185 @@
+#!/usr/bin/env bash
+#
+# Waybar indicator for GPU usage
+# Uses nvtop mechanisms where possible, fdinfo aggregation for Intel
+#
+# Output format: <percent>% <nerd font symbol>
+
+set -euo pipefail
+
+icon="󰢮"  # nf-md-expansion_card
+
+# Intel fdinfo aggregation for usage calculation
+# Uses delta between samples for accurate current usage
+CACHE_FILE="${XDG_RUNTIME_DIR:-/tmp}/gpu-indicator-cache"
+
+# Intel Xe driver: uses cycle-based counters
+get_intel_xe_usage() {
+    local render_dev="/dev/dri/renderD128"
+    [[ -c "$render_dev" ]] || return 1
+
+    # Find PIDs with open fds to render device
+    local pids
+    pids=$(fd -L -t l . /proc/[0-9]*/fd 2>/dev/null | xargs -r readlink 2>/dev/null | grep -l renderD | xargs -r dirname 2>/dev/null | xargs -r dirname 2>/dev/null | xargs -r basename -a 2>/dev/null | sort -u)
+    [[ -z "$pids" ]] && pids=$(find /proc/[0-9]*/fd -lname "*renderD*" 2>/dev/null | cut -d/ -f3 | sort -u)
+    [[ -z "$pids" ]] && return 1
+
+    # Get current total-cycles (reference counter)
+    local total
+    total=$(cat /proc/[0-9]*/fdinfo/* 2>/dev/null | awk '/^drm-total-cycles-rcs:/ { if ($2 > max) max = $2 } END { print max }')
+    [[ -z "$total" || "$total" -eq 0 ]] && return 1
+
+    # Sum active cycles per process (RCS + CCS, dedupe multiple fds per process)
+    local active=0
+    for pid in $pids; do
+        local val
+        val=$(cat "/proc/$pid/fdinfo"/* 2>/dev/null | awk '
+            /^drm-cycles-rcs:/ && !rcs { rcs = $2 }
+            /^drm-cycles-ccs:/ && !ccs { ccs = $2 }
+            END { print rcs + ccs }
+        ')
+        [[ -n "$val" ]] && active=$((active + val))
+    done
+
+    # Read previous values from cache
+    if [[ -f "$CACHE_FILE" ]]; then
+        local prev_active prev_total
+        read -r prev_active prev_total < "$CACHE_FILE"
+
+        local active_delta=$((active - prev_active))
+        local total_delta=$((total - prev_total))
+
+        # Save current values for next run
+        echo "$active $total" > "$CACHE_FILE"
+
+        if [[ "$total_delta" -gt 0 ]]; then
+            echo $((active_delta * 100 / total_delta))
+            return 0
+        fi
+    fi
+
+    # First run - save state and return 0
+    echo "$active $total" > "$CACHE_FILE"
+    echo 0
+}
+
+# Intel i915 driver: aggregate render engine time from fdinfo (like nvtop)
+# Uses delta between samples for accurate current usage
+get_intel_i915_usage() {
+    # Sum render + compute engine time across all DRM clients
+    # Must dedupe by drm-client-id since multiple fds can share a client
+    # Video encode/decode kept separate in nvtop, copy is DMA transfers
+    local engine_ns
+    engine_ns=$(cat /proc/[0-9]*/fdinfo/* 2>/dev/null | awk '
+        /^drm-client-id:/ { cid = $2 }
+        /^drm-engine-render:/ { render[cid] = $2 }
+        /^drm-engine-compute:/ { compute[cid] = $2 }
+        END {
+            total = 0
+            for (c in render) total += render[c]
+            for (c in compute) total += compute[c]
+            print total
+        }
+    ')
+    [[ -z "$engine_ns" ]] && return 1
+
+    # Get current timestamp in nanoseconds
+    local now_ns
+    now_ns=$(date +%s%N)
+
+    # Read previous values from cache
+    if [[ -f "$CACHE_FILE" ]]; then
+        local prev_engine prev_time
+        read -r prev_engine prev_time < "$CACHE_FILE"
+
+        local engine_delta=$((engine_ns - prev_engine))
+        local time_delta=$((now_ns - prev_time))
+
+        # Save current values for next run
+        echo "$engine_ns $now_ns" > "$CACHE_FILE"
+
+        if [[ "$time_delta" -gt 0 ]]; then
+            # Calculate percentage: (render_time_delta / wall_time_delta) * 100
+            # Clamp to 0-100
+            local pct=$((engine_delta * 100 / time_delta))
+            (( pct < 0 )) && pct=0
+            (( pct > 100 )) && pct=100
+            echo "$pct"
+            return 0
+        fi
+    fi
+
+    # First run - save state and return 0
+    echo "$engine_ns $now_ns" > "$CACHE_FILE"
+    echo 0
+}
+
+# NVIDIA/AMD: use nvtop snapshot (gpu_util works for these)
+get_nvtop_usage() {
+    local json
+    json=$(nvtop -s 2>/dev/null) || return 1
+    echo "$json" | jq -r '.[0].gpu_util // empty | gsub("%"; "") | tonumber | floor' 2>/dev/null
+}
+
+# Detect GPU type
+detect_gpu_type() {
+    # Check for Intel xe
+    if compgen -G "/sys/bus/event_source/devices/xe_*" > /dev/null 2>&1; then
+        echo "intel_xe"
+        return
+    fi
+
+    # Check for Intel i915
+    if [[ -d /sys/module/i915 ]]; then
+        echo "intel_i915"
+        return
+    fi
+
+    # Check for NVIDIA
+    if [[ -d /sys/module/nvidia ]] || command -v nvidia-smi &>/dev/null; then
+        echo "nvidia"
+        return
+    fi
+
+    # Check for AMD
+    if [[ -d /sys/module/amdgpu ]] || compgen -G "/sys/class/drm/card*/device/vendor" > /dev/null 2>&1; then
+        for vendor_file in /sys/class/drm/card*/device/vendor; do
+            [[ -f "$vendor_file" ]] && [[ "$(cat "$vendor_file")" == "0x1002" ]] && echo "amd" && return
+        done
+    fi
+
+    echo "unknown"
+}
+
+# Main
+gpu_type=$(detect_gpu_type)
+usage=""
+gpu_name=""
+
+case "$gpu_type" in
+    intel_xe)
+        gpu_name="Intel"
+        usage=$(get_intel_xe_usage 2>/dev/null) || true
+        ;;
+    intel_i915)
+        gpu_name="Intel"
+        usage=$(get_intel_i915_usage 2>/dev/null) || true
+        ;;
+    nvidia|amd)
+        gpu_name="${gpu_type^^}"
+        usage=$(get_nvtop_usage 2>/dev/null) || true
+        ;;
+esac
+
+# Fallback if no data
+if [[ -z "$usage" || "$usage" == "null" ]]; then
+    printf '{"text": "-- %s", "tooltip": "GPU: No data available"}\n' "$icon"
+    exit 0
+fi
+
+# Clamp to 0-100
+(( usage < 0 )) && usage=0
+(( usage > 100 )) && usage=100
+
+printf '{"text": "%s%% %s", "tooltip": "%s GPU: %s%%"}\n' \
+    "$usage" "$icon" "$gpu_name" "$usage"

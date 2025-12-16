@@ -1,10 +1,20 @@
 [include]
   path = ~/.local/.gitconfig
-  path = ~/.config/delta/themes.gitconfig
+	path = ~/.config/delta/themes.gitconfig
+[core]
+	pager = delta
+[interactive]
+    diffFilter = delta --color-only
+[delta]
+    navigate = true    # use n and N to move between diff sections
+    line-numbers = true
+    side-by-side = true
+[merge]
+    conflictstyle = zdiff3
 [filter "lfs"]
   clean = git-lfs clean -- %f
   smudge = git-lfs smudge -- %f
   process = git-lfs filter-process
   required = true
-[maintenance]
-  repo = /home/rwwiv/dev/grafana
+[credential]
+	helper = libsecret

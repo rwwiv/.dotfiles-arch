@@ -1,14 +1,23 @@
 #!/usr/bin/env python3
-import sys
-import json
-import subprocess
-import re
-from typing import Tuple, Optional
+"""Universal brightness control for internal and external (DDC) displays."""
 
-def get_focused_monitor() -> Tuple[str, str]:
-    """Returns (name, model) of the focused monitor."""
+from __future__ import annotations
+
+import json
+import re
+import subprocess
+import sys
+
+
+def get_focused_monitor() -> tuple[str, str]:
+    """
+    Get the focused monitor's name and model.
+
+    Returns:
+        Tuple of (name, model) for the focused monitor.
+    """
     try:
-        out = subprocess.check_output(["hyprctl", "monitors", "-j"])
+        out = subprocess.check_output(["hyprctl", "monitors", "-j"], text=True)
         monitors = json.loads(out)
         for m in monitors:
             if m["focused"]:
@@ -17,93 +26,116 @@ def get_focused_monitor() -> Tuple[str, str]:
         sys.exit(1)
     return "", ""
 
-def get_ddc_display(target_model: str) -> Optional[str]:
-    """Finds ddcutil display number by matching product name to model."""
+
+def get_ddc_display(target_model: str) -> str | None:
+    """
+    Find ddcutil display number by matching product name to model.
+
+    Args:
+        target_model: The monitor model to search for.
+
+    Returns:
+        Display ID string or None if not found.
+    """
     try:
         out = subprocess.check_output(["ddcutil-client", "list"], text=True)
         current_disp = None
-        
+
         for line in out.splitlines():
             line = line.strip()
             if line.startswith("display:"):
-                # "display: 1" -> "1"
                 current_disp = line.split(":", 1)[1].strip()
             elif line.startswith("product_name:"):
                 p_name = line.split(":", 1)[1].strip()
                 # Fuzzy match because EDID strings are messy
-                # e.g. "LG HDR 4K" in "LG HDR 4K"
                 if target_model in p_name or p_name in target_model:
                     return current_disp
     except Exception:
         pass
     return None
 
+
 def set_internal_brightness(delta: str, monitor_name: str) -> None:
-    """Pass-through for internal laptop displays."""
-    subprocess.run(["swayosd-client", "--brightness", delta, "--monitor", monitor_name])
+    """Pass-through for internal laptop displays using swayosd."""
+    subprocess.run(
+        ["swayosd-client", "--brightness", delta, "--monitor", monitor_name],
+        check=False,
+    )
+
 
 def set_external_brightness(delta_int: int, display_id: str, monitor_name: str) -> None:
-    """Handles logic for DDC monitors."""
+    """
+    Set brightness on external DDC-capable monitors.
+
+    Args:
+        delta_int: Brightness change amount (positive or negative).
+        display_id: DDC display identifier.
+        monitor_name: Monitor name for OSD display.
+    """
     try:
-        # Get Current (VCP 10)
-        # Output ex: "VCP 10 C 50 100" (code type current max)
+        # Get current brightness (VCP 10)
         out = subprocess.check_output(
-            ["ddcutil-client", "-d", display_id, "getvcp", "10"], 
-            text=True
+            ["ddcutil-client", "-d", display_id, "getvcp", "10"], text=True
         )
-        
-        # Parse current and max
+
+        # Parse current and max values
         curr_match = re.search(r"vcp_current_value:\s+(\d+)", out)
         max_match = re.search(r"vcp_max_value:\s+(\d+)", out)
-        
-        if not curr_match: return
+
+        if not curr_match:
+            return
 
         current = int(curr_match.group(1))
         maximum = int(max_match.group(1)) if max_match else 100
-        
-        # Calculate new
-        new_val = max(0, min(maximum, current + delta_int))
-        
-        if new_val == current: return
 
-        # Set Value
+        # Calculate new value, clamped to valid range
+        new_val = max(0, min(maximum, current + delta_int))
+
+        if new_val == current:
+            return
+
+        # Set new brightness
         subprocess.run(
             ["ddcutil-client", "-d", display_id, "setvcp", "10", str(new_val)],
-            check=True
+            check=True,
         )
 
         # Update OSD (using custom values since swayosd can't read DDC)
         progress = new_val / maximum
-        percentage = int(progress * 100)
-        subprocess.run([
-            "swayosd-client",
-            "--custom-icon", "display-brightness-symbolic",
-            "--custom-progress", f"{progress:.2f}",
-            "--custom-progress-text", f"{percentage}%",
-            "--monitor", monitor_name
-        ])
-        
-    except Exception as e:
-        print(f"DDC Error: {e}")
+        subprocess.run(
+            [
+                "swayosd-client",
+                "--custom-icon",
+                "display-brightness-symbolic",
+                "--custom-progress",
+                f"{progress:.2f}",
+                "--monitor",
+                monitor_name,
+            ],
+            check=False,
+        )
 
-def main():
+    except Exception as e:
+        print(f"DDC Error: {e}", file=sys.stderr)
+
+
+def main() -> int:
+    """Main entry point."""
     if len(sys.argv) < 2:
-        print("Usage: ddc_brightness.py [+|-]VAL")
-        sys.exit(1)
+        print("Usage: uni-brightness [+|-]VAL", file=sys.stderr)
+        return 1
 
     delta_str = sys.argv[1]
     try:
         delta_int = int(delta_str)
     except ValueError:
-        sys.exit(1)
+        print(f"Error: Invalid brightness value '{delta_str}'", file=sys.stderr)
+        return 1
 
     name, model = get_focused_monitor()
-    
-    # Internal detection strategy:
-    # 1. Check if name starts with eDP (standard)
-    # 2. Or if ddcutil can't find a match, fallback to internal method? 
-    # Let's stick to explicit eDP check for safety, or you can add your laptop model here.
-    if name.startswith("eDP") or name.startswith("LVDS"):
+
+    # Internal display detection: eDP or LVDS prefixes
+    if name.startswith(("eDP", "LVDS")):
         set_internal_brightness(delta_str, name)
     else:
         # Try to find DDC display
@@ -111,9 +143,11 @@ def main():
         if ddc_id:
             set_external_brightness(delta_int, ddc_id, name)
         else:
-            # Fallback: Maybe it's an external without DDC support?
-            # Try swayosd anyway, maybe it supports ddcci-driver if you fix it later
+            # Fallback: external without DDC support, try swayosd anyway
             set_internal_brightness(delta_str, name)
 
+    return 0
+
+
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

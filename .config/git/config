@@ -1,0 +1,17 @@
+[alias]
+	co = checkout
+	br = branch
+	ci = commit
+	st = status
+[pull]
+	rebase = true
+[init]
+	defaultBranch = main
+[user]
+	name = Will Wernert
+	email = william.wernert@gmail.com
+	signingkey = 9CAAC083C1774365
+[commit]
+	gpgsign = true
+[lfs "https://softserve/dotfiles-arch.git/info/lfs"]
+	locksverify = true

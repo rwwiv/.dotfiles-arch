@@ -1,0 +1,16 @@
+#!/bin/sh
+
+case "$1" in
+    pre)
+        # Save current profile and switch to efficient mode
+        powerprofilesctl get > /tmp/pre_sleep_profile_name
+        powerprofilesctl set power-saver
+        ;;
+    post)
+        # Restore the original profile
+        if [ -f /tmp/pre_sleep_profile_name ]; then
+             PREV_PROFILE=$(cat /tmp/pre_sleep_profile_name)
+             powerprofilesctl set "$PREV_PROFILE"
+        fi
+        ;;
+esac

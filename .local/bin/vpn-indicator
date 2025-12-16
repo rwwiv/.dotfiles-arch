@@ -1,183 +1,208 @@
 #!/usr/bin/env python3
-import sys
+"""Waybar VPN indicator for Tailscale and WireGuard."""
+
+from __future__ import annotations
+
 import json
 import subprocess
+import sys
 import threading
 import time
+from typing import Any
 
 # --- Configuration ---
 WG_INTERFACE = "wg0"
 
 # --- Output States ---
-# Tailscale States
-TS_STATES = {
+TS_STATES: dict[str, dict[str, str]] = {
     "Running": {"text": "ts 󰒙", "class": "vpn-ts-on", "tooltip": "Tailscale: Connected"},
     "Starting": {"text": "ts ...", "class": "vpn-ts-wait", "tooltip": "Tailscale: Connecting..."},
     "NeedsLogin": {"text": "ts 󰦜", "class": "vpn-ts-auth", "tooltip": "Tailscale: Needs Login"},
     "Stopped": {"text": "ts 󰦜", "class": "vpn-ts-off", "tooltip": "Tailscale: Stopped"},
-    "NoState": {"text": "ts 󰦜", "class": "vpn-ts-off", "tooltip": "Tailscale: Not Ready"}
+    "NoState": {"text": "ts 󰦜", "class": "vpn-ts-off", "tooltip": "Tailscale: Not Ready"},
 }
 
-# WireGuard States
-WG_STATES = {
+WG_STATES: dict[str, dict[str, str]] = {
     "UP": {"text": "wg 󰒙", "class": "vpn-wg-on", "tooltip": "WireGuard: Connected"},
-    "DOWN": {"text": "wg 󰦜", "class": "vpn-wg-off", "tooltip": "WireGuard: Disconnected"}
+    "DOWN": {"text": "wg 󰦜", "class": "vpn-wg-off", "tooltip": "WireGuard: Disconnected"},
 }
 
-# Combined/Default
-STATE_DISCONNECTED = {"text": "vpn 󰦜", "class": "vpn-off", "tooltip": "No VPN Connected"}
+STATE_DISCONNECTED: dict[str, str] = {
+    "text": "vpn 󰦜",
+    "class": "vpn-off",
+    "tooltip": "No VPN Connected",
+}
+
+# Tailscale state numeric to string mapping
+TS_STATE_MAP: dict[int, str] = {
+    2: "NeedsLogin",
+    4: "Stopped",
+    5: "Starting",
+    6: "Running",
+}
 
 # --- Global State ---
-current_state = {
-    "ts": "Stopped", # Default assumption
-    "wg": "DOWN"
+current_state: dict[str, str] = {
+    "ts": "Stopped",
+    "wg": "DOWN",
 }
 state_lock = threading.Lock()
 
-def print_status():
-    """Determines what to show based on priority."""
+
+def print_status() -> None:
+    """Output current VPN status as JSON for Waybar."""
     with state_lock:
         ts = current_state["ts"]
         wg = current_state["wg"]
 
-    # Logic: If either is actively running/up, show it.
-    # Priority: Tailscale > WireGuard (arbitrary choice, can be swapped)
-    
-    output = STATE_DISCONNECTED.copy()
-    
-    # Check Tailscale active
+    # Priority: Tailscale > WireGuard
     if ts == "Running":
-        output = TS_STATES[ts]
-    # Check WireGuard active
+        output = TS_STATES[ts].copy()
     elif wg == "UP":
-        output = WG_STATES[wg]
-    # Check intermediate states
-    elif ts in ["Starting", "NeedsLogin"]:
-        output = TS_STATES[ts]
-    # Else default (Disconnected) 
-    
-    # Standardize Display Text
-    ts_fmt = ts
-    if ts == "Running": ts_fmt = "Running"
-    elif ts == "Stopped": ts_fmt = "Stopped"
-    
-    wg_fmt = "Stopped"
-    if wg == "UP": wg_fmt = "Running"
+        output = WG_STATES[wg].copy()
+    elif ts in ("Starting", "NeedsLogin"):
+        output = TS_STATES[ts].copy()
+    else:
+        output = STATE_DISCONNECTED.copy()
+
+    # Format status strings
+    ts_fmt = "Running" if ts == "Running" else ts
+    wg_fmt = "Running" if wg == "UP" else "Stopped"
 
     # Enrich tooltip with full details
     output["tooltip"] = f"Tailscale: {ts_fmt}\nWireGuard: {wg_fmt}"
-    
+
     print(json.dumps(output), flush=True)
 
-# --- Watchers ---
 
-def watch_tailscale():
-    """Watches `tailscale debug watch-ipn` for state changes."""
+def watch_tailscale() -> None:
+    """Watch tailscale debug watch-ipn for state changes."""
     # Initial check
     try:
-        proc = subprocess.run(["tailscale", "status", "--json"], capture_output=True, text=True)
+        proc = subprocess.run(
+            ["tailscale", "status", "--json"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
         if proc.returncode == 0:
             data = json.loads(proc.stdout)
             with state_lock:
                 current_state["ts"] = data.get("BackendState", "NoState")
     except Exception:
         pass
-    
+
     print_status()
 
     # Watch loop
     cmd = ["tailscale", "debug", "watch-ipn"]
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
-    
-    # Parse the stream
-    jq = subprocess.Popen(["jq", "--unbuffered", "-c", "."], stdin=process.stdout, stdout=subprocess.PIPE, text=True, bufsize=1)
-    process.stdout.close() # Allow SIGPIPE
+    process = subprocess.Popen(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True
+    )
+
+    # Parse the stream through jq for proper JSON handling
+    jq = subprocess.Popen(
+        ["jq", "--unbuffered", "-c", "."],
+        stdin=process.stdout,
+        stdout=subprocess.PIPE,
+        text=True,
+        bufsize=1,
+    )
+    if process.stdout:
+        process.stdout.close()  # Allow SIGPIPE
 
     try:
-        for line in iter(jq.stdout.readline, ''):
-            if not line: break
-            try:
-                data = json.loads(line)
-                new_state = data.get("State")
-                # Map numeric enums if necessary, but watch-ipn usually sends strings like "Running" in recent versions?
-                # Actually watch-ipn sends numeric 'State' often, or 'BackendState' string. 
-                # Let's handle the numeric mapping if needed.
-                # 6=Running, 4=Stopped, 2=NeedsLogin
-                mapping = {6: "Running", 4: "Stopped", 2: "NeedsLogin", 5: "Starting"}
-                
-                if isinstance(new_state, int):
-                    str_state = mapping.get(new_state, str(new_state))
-                else:
-                    str_state = str(new_state)
+        if jq.stdout:
+            for line in iter(jq.stdout.readline, ""):
+                if not line:
+                    break
+                try:
+                    data: dict[str, Any] = json.loads(line)
+                    new_state = data.get("State")
 
-                # Filter out None or partial updates
-                if new_state is not None:
-                    with state_lock:
-                        current_state["ts"] = str_state
-                    print_status()
-            except ValueError:
-                pass
+                    if isinstance(new_state, int):
+                        str_state = TS_STATE_MAP.get(new_state, str(new_state))
+                    else:
+                        str_state = str(new_state) if new_state else None
+
+                    if str_state is not None:
+                        with state_lock:
+                            current_state["ts"] = str_state
+                        print_status()
+                except (ValueError, json.JSONDecodeError):
+                    pass
     except Exception:
         pass
     finally:
         jq.kill()
         process.kill()
 
-def watch_wireguard():
-    """Watches `ip monitor link` for interface changes."""
-    
-    def check_wg():
-        """One-off check."""
-        try:
-            cmd = ["ip", "-j", "link", "show", WG_INTERFACE]
-            res = subprocess.run(cmd, capture_output=True, text=True)
-            if res.returncode != 0: return "DOWN"
-            data = json.loads(res.stdout)
-            if not data: return "DOWN"
-            flags = data[0].get("flags", [])
-            return "UP" if "UP" in flags else "DOWN"
-        except Exception:
-            return "DOWN"
 
-    # Initial
+def check_wireguard() -> str:
+    """Check WireGuard interface status."""
+    try:
+        cmd = ["ip", "-j", "link", "show", WG_INTERFACE]
+        res = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        if res.returncode != 0:
+            return "DOWN"
+        data = json.loads(res.stdout)
+        if not data:
+            return "DOWN"
+        flags = data[0].get("flags", [])
+        return "UP" if "UP" in flags else "DOWN"
+    except Exception:
+        return "DOWN"
+
+
+def watch_wireguard() -> None:
+    """Watch ip monitor link for WireGuard interface changes."""
+    # Initial check
     with state_lock:
-        current_state["wg"] = check_wg()
+        current_state["wg"] = check_wireguard()
     print_status()
 
-    # Monitor
+    # Monitor for changes
     cmd = ["ip", "monitor", "link"]
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    process = subprocess.Popen(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True
+    )
 
     try:
-        for line in iter(process.stdout.readline, ''):
-            if WG_INTERFACE in line:
-                # Small sleep to let state settle
-                time.sleep(0.2)
-                new_status = check_wg()
-                changed = False
-                with state_lock:
-                    if current_state["wg"] != new_status:
-                        current_state["wg"] = new_status
-                        changed = True
-                if changed:
-                    print_status()
+        if process.stdout:
+            for line in iter(process.stdout.readline, ""):
+                if WG_INTERFACE in line:
+                    # Small sleep to let state settle
+                    time.sleep(0.2)
+                    new_status = check_wireguard()
+                    changed = False
+                    with state_lock:
+                        if current_state["wg"] != new_status:
+                            current_state["wg"] = new_status
+                            changed = True
+                    if changed:
+                        print_status()
     except Exception:
         pass
     finally:
         process.kill()
 
-def main():
+
+def main() -> int:
+    """Main entry point."""
     t1 = threading.Thread(target=watch_tailscale, daemon=True)
     t2 = threading.Thread(target=watch_wireguard, daemon=True)
-    
+
     t1.start()
     t2.start()
-    
+
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        sys.exit(0)
+        return 0
+
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

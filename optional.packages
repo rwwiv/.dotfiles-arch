@@ -1,0 +1,62 @@
+# Optional packages for headless systems (no GUI required)
+
+# Development tools
+mise
+cmake
+meson
+shellcheck
+
+# Enhanced CLI tools
+eza
+fzf
+bat
+zoxide
+lazygit
+lazydocker
+gum
+btop
+atuin
+ripgrep
+fd
+tealdeer           # Fast tldr client (replaces tldr)
+topgrade           # System upgrade automation
+yadm               # Dotfiles manager
+
+# Sandbox tool
+tobi-try           # Command sandbox (AUR)
+
+# Python tooling
+uv
+
+# Database tools
+postgresql
+usql-bin           # Universal SQL CLI (AUR)
+numbat-bin         # Scientific calculator with units (AUR)
+
+# Kubernetes/Infrastructure
+talosctl           # Talos Linux (Kubernetes OS) CLI
+
+# Networking utilities
+tailscale
+openbsd-netcat
+rclone             # Cloud storage sync
+
+# Package management
+pkgfile            # Find which package owns a file
+
+# Command correction (AUR)
+thefuck
+
+# Security
+clamav
+
+# Hardware debugging (minimal)
+evtest             # Input device testing
+nvme-cli           # NVMe SSD management
+
+# Power management (replaces power-profiles-daemon)
+# Config tracked at ~/etc/tlp.conf (copy from /etc/tlp.conf if needed)
+tlp
+tlp-rdw            # Radio device wizard
+tlp-pd             # power-profiles-daemon compatibility bridge
+thermald           # Intel thermal daemon (works alongside TLP)

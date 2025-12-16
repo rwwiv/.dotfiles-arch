@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+#
+# Launch Steam Big Picture in Gamescope with current monitor resolution
+
+set -euo pipefail
+
+# Get monitor info from focused display
+vals=$(hyprctl monitors -j | jq -r '.[] | select(.focused==true) | "\(.width) \(.height) \(.refreshRate)"')
+
+# Split into variables
+read -r w h r <<< "$vals"
+
+# Strip decimal from refresh rate
+r="${r%.*}"
+
+# Launch Gamescope
+# "$@" passes through any arguments (like steam:// URLs) sent to the script
+exec gamescope -W "$w" -H "$h" -r "$r" -e -f --force-grab-cursor -- /usr/bin/steam -bigpicture "$@"

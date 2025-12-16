@@ -1,13 +1,6 @@
 @import "../omarchy/current/theme/waybar.css";
 
 /* ============================================
-   Variables
-   ============================================ */
-/* @define-color active #f5a97f; */
-@define-color active #E6C384;
-@define-color button-background #2A2A37;
-
-/* ============================================
    Global Styles
    ============================================ */
 * {
@@ -16,25 +9,22 @@
   min-height: 0;
 }
 
-
 /* ============================================
    Container Styles
    ============================================ */
 #waybar {
-  background-color: @background;
+  background-color: alpha(@background, 0.93);
   border: 2px solid shade(@background, 0.8);
 }
 
 .modules-left {
-  /* background-color: @background; */
   font-size: 14px;
 }
 
 .modules-center {
-  /* background-color: @background; */
 }
+
 .modules-right {
-  /* background-color: @background; */
   color: @foreground;
   font-size: 13px;
 }
@@ -47,7 +37,6 @@
   margin-bottom: 1px;
 }
 
-
 #workspaces button:hover {
   color: shade(@foreground, 1.1);
   background: transparent;
@@ -56,7 +45,6 @@
   text-shadow: none;
   border-color: transparent;
 }
-
 
 #workspaces button {
   color: @foreground;
@@ -80,7 +68,7 @@
 }
 
 /* ============================================
-   System Modules
+   Bar Buttons (modules-right)
    ============================================ */
 #temperature.cpu,
 #battery,
@@ -91,8 +79,10 @@
 #idle_inhibitor,
 #custom-dnd,
 #custom-vpn,
-#custom-1password {
-  background-color: @button-background;
+#cpu,
+#memory,
+#custom-gpu {
+  background-color: alpha(@button-background, 0.5);
   border: 1px solid shade(@background, 0.8);
   margin: 6px 3px;
   min-width: 10px;
@@ -103,14 +93,16 @@
 #battery:hover,
 #bluetooth:hover,
 #mpris:hover,
-#idle_inhibitor:hover,
 #network:hover,
 #wireplumber:hover,
+#idle_inhibitor:hover,
 #custom-dnd:hover,
 #custom-vpn:hover,
-#custom-1password:hover {
+#cpu:hover,
+#memory:hover,
+#custom-gpu:hover {
   color: shade(@foreground, 1.05);
-  background-color: shade(@button-background, 1.1);
+  background-color: alpha(shade(@button-background, 1.1), 0.5);
 }
 
 #wireplumber.volume {
@@ -119,26 +111,31 @@
 
 /* Mic specific */
 #wireplumber.microphone.muted {
-  background-color: #8b4d36;
+  background-color: alpha(@orange, 0.6);
+}
+
+#wireplumber.microphone.muted:hover {
+  color: shade(@foreground, 1.05);
+  background-color: alpha(shade(@orange, 0.9), 0.5);
 }
 
 /* Battery specific */
 #battery.discharging.critical {
-  background-color: #9b1010;
+  background-color: alpha(@red, 0.6);
 }
 
 #battery.discharging.critical:hover {
   color: shade(@foreground, 1.05);
-  background-color: shade(#9b1010, 0.9);
+  background-color: alpha(shade(@red, 0.9), 0.5);
 }
 
 #battery.discharging.warning {
-  background-color: #b47621;
+  background-color: alpha(@orange, 0.6);
 }
 
 #battery.discharging.warning:hover {
   color: shade(@foreground, 1.05);
-  background-color: shade(#b47621, 0.9);
+  background-color: alpha(shade(@orange, 0.9), 0.5);
 }
 
 /* Idle inhibitor specific */
@@ -147,13 +144,16 @@
 }
 
 #idle_inhibitor.activated {
-  /* padding-left: 7px; */
   padding-right: 9px;
-  background-color: #7d5e4c;
+  background-color: alpha(@yellow, 0.5);
+}
+
+#idle_inhibitor.activated:hover {
+  color: shade(@foreground, 1.05);
+  background-color: alpha(shade(@yellow, 0.9), 0.5);
 }
 
 /* Do not disturb specific */
-
 #custom-dnd.dnd-off {
   padding-right: 8px;
 }
@@ -161,29 +161,32 @@
 #custom-dnd.dnd-on {
   padding-left: 5px;
   padding-right: 9px;
-  background-color: #535397;
+  background-color: alpha(@magenta, 0.5);
+}
+
+#custom-dnd.dnd-on:hover {
+  color: shade(@foreground, 1.05);
+  background-color: alpha(shade(@magenta, 0.9), 0.5);
 }
 
 #custom-vpn.vpn-off {
-  /* padding-left: 5px; */
   padding-right: 9px;
 }
 
 #custom-vpn.vpn-on {
-  /* padding-left: 5px; */
   padding-right: 8px;
 }
 
-#mpris {
-  padding: 9px;
-}
-
 #network.wifi,
-#network.disconnected {
+#network.disconnected,
+#temperature.cpu,
+#disk {
   padding-right: 9px;
 }
 
-#temperature.cpu {
+#cpu,
+#memory,
+#custom-gpu {
   padding-right: 9px;
 }
 
@@ -192,7 +195,6 @@
    ============================================ */
 #clock {
   color: @foreground;
-  /* font-size: 14px; */
   margin: 1px 10px 0 6px;
 }
 
@@ -238,9 +240,9 @@
    Custom Modules
    ============================================ */
 #custom-omarchy {
-  background-color: shade(@background, 1.4);
+  background-color: alpha(@button-background, 0.5);
   border: 2px solid shade(@background, 1.1);
-  border-right: 2px solid shade(@background, 0.8);
+  border-right: 2px solid shade(@background, 0.6);
   color: @foreground;
   font-size: 16px;
   margin-left: 0;
@@ -251,9 +253,8 @@
 
 #custom-omarchy:hover {
   color: shade(@foreground, 1.05);
-  background-color: shade(@background, 1.6);
+  background-color: alpha(shade(@button-background, 1.1), 0.5);
 }
-
 
 #custom-expand-icon:hover {
   color: shade(@foreground, 1.2);
@@ -261,17 +262,17 @@
 
 #custom-screenrecording-indicator {
   font-size: 10px;
-  margin-right: 10px;
+  padding-right: 2px;
   min-width: 10px;
 }
 
 #custom-screenrecording-indicator.active {
-  color: #a55555;
+  color: @red;
 }
 
 #custom-update {
   font-size: 10px;
-  margin-right: 8px;
+  margin-right: 9px;
 }
 
 /* ============================================

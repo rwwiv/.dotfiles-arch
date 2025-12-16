@@ -10,17 +10,39 @@ if ! command -v gum &> /dev/null; then
     exit 1
 fi
 
-if ! command -v sdl-freerdp3 &> /dev/null; then
-    echo "Error: sdl-freerdp3 is not installed"
+if ! command -v xfreerdp3 &> /dev/null; then
+    echo "Error: xfreerdp3 is not installed"
+    exit 1
+fi
+
+if ! command -v zenity &> /dev/null; then
+    echo "Error: zenity is not installed"
     exit 1
 fi
 
 # Ensure config directory exists
 mkdir -p "$CONFIG_DIR"
 
+# Detect display scale from Hyprland and compute RDP scale parameter
+get_rdp_scale() {
+    local hypr_scale scale_percent
+    hypr_scale=$(hyprctl monitors -j 2>/dev/null | jq -r '.[] | select(.focused == true) | .scale' 2>/dev/null)
+
+    if [[ -n "$hypr_scale" && "$hypr_scale" != "null" ]]; then
+        scale_percent=$(echo "$hypr_scale" | awk '{print int($1 * 100)}')
+        if [[ "$scale_percent" -ge 170 ]]; then
+            echo "/scale:180"
+        elif [[ "$scale_percent" -ge 130 ]]; then
+            echo "/scale:140"
+        fi
+    fi
+    # If scale < 130% or detection fails, return nothing (use default 100%)
+}
+
 # Initialize variables with defaults
 SERVER=""
 USER=""
+DOMAIN=""
 PASSWORD=""
 PASS_ENTRY=""
 DYNAMIC_RES="true"
@@ -41,6 +63,7 @@ save_profile() {
     cat > "$file" <<EOF
 SERVER="$SERVER"
 USER="$USER"
+DOMAIN="$DOMAIN"
 PASS_ENTRY="$PASS_ENTRY"
 DYNAMIC_RES="$DYNAMIC_RES"
 CLIPBOARD="$CLIPBOARD"
@@ -84,6 +107,7 @@ if [[ "$PROFILE_LOADED" == true ]]; then
     gum style --foreground 212 "Profile: $selected"
     echo "Server: $SERVER"
     echo "User: $USER"
+    [[ -n "$DOMAIN" ]] && echo "Domain: $DOMAIN"
     [[ -n "$PASS_ENTRY" ]] && echo "Password: from pass ($PASS_ENTRY)"
     echo ""
     
@@ -104,13 +128,14 @@ if [[ "$PROFILE_LOADED" == true ]]; then
         fi
         
         # Build and execute command directly
-        CMD=(sdl-freerdp3 /v:"$SERVER" /u:"$USER" /f /scale:100)
+        RDP_SCALE=$(get_rdp_scale)
+        CMD=(xfreerdp3 /v:"$SERVER" /u:"$USER" /d:"$DOMAIN" /f -grab-keyboard /gfx:AVC444 "$RDP_SCALE")
         [[ -n "$PASSWORD" ]] && CMD+=(/p:"$PASSWORD")
-        
+
         [[ "$DYNAMIC_RES" == "true" ]] && CMD+=(/dynamic-resolution)
         [[ "$CLIPBOARD" == "true" ]] && CMD+=(/clipboard)
-        [[ "$SOUND" == "true" ]] && CMD+=(/sound:sys:pulse)
-        [[ "$MIC" == "true" ]] && CMD+=(/microphone:sys:pulse)
+        [[ "$SOUND" == "true" ]] && CMD+=(/sound)
+        [[ "$MIC" == "true" ]] && CMD+=(/microphone)
         [[ "$NETWORK" != "none" ]] && CMD+=(/network:"$NETWORK")
         
         if [[ -n "$SHARE_NAME" && -n "$SHARE_PATH" ]]; then
@@ -134,6 +159,8 @@ if [[ -z "$USER" ]]; then
     exit 1
 fi
 
+DOMAIN=$(gum input --value "$DOMAIN" --placeholder "Domain (optional)" --prompt "Domain: ")
+
 # Password handling
 if [[ -n "$PASS_ENTRY" ]]; then
     if gum confirm "Use pass entry '$PASS_ENTRY'?"; then
@@ -148,10 +175,10 @@ fi
 
 if [[ -z "$PASSWORD" ]]; then
     PASS_METHOD=$(gum choose --header "Password:" "Prompt at connect" "Enter now" "Use pass")
-    
+
     case "$PASS_METHOD" in
         "Enter now")
-            PASSWORD=$(gum input --password --placeholder "Password" --prompt "Password: ")
+            PASSWORD=$(zenity --password --title="RDP Password" --text="Enter password for $USER@$SERVER" 2>/dev/null)
             ;;
         "Use pass")
             PASS_ENTRY=$(gum input --placeholder "path/to/entry" --prompt "Pass entry: ")
@@ -203,14 +230,15 @@ if [[ -z "$SHARE_PATH" ]] && gum confirm "Share a local folder?"; then
 fi
 
 # Build command
-CMD=(sdl-freerdp3 /v:"$SERVER" /u:"$USER" /f /scale:100)
+RDP_SCALE=$(get_rdp_scale)
+CMD=(xfreerdp3 /v:"$SERVER" /u:"$USER" /d:"$DOMAIN" /f -grab-keyboard /gfx:AVC444 "$RDP_SCALE")
 
 [[ -n "$PASSWORD" ]] && CMD+=(/p:"$PASSWORD")
 
 [[ "$DYNAMIC_RES" == "true" ]] && CMD+=(/dynamic-resolution)
 [[ "$CLIPBOARD" == "true" ]] && CMD+=(/clipboard)
-[[ "$SOUND" == "true" ]] && CMD+=(/sound:sys:pulse)
-[[ "$MIC" == "true" ]] && CMD+=(/microphone:sys:pulse)
+[[ "$SOUND" == "true" ]] && CMD+=(/sound)
+[[ "$MIC" == "true" ]] && CMD+=(/microphone)
 [[ "$NETWORK" != "none" ]] && CMD+=(/network:"$NETWORK")
 
 if [[ -n "$SHARE_NAME" && -n "$SHARE_PATH" ]]; then

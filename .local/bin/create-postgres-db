@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-
+#
 # Create PostgreSQL database with user and password
 # Usage: create-postgres-db <user> <pass> [db]
 #
@@ -7,19 +7,28 @@
 #   create-postgres-db myuser mypass
 #   create-postgres-db myuser mypass mydb
 
+set -euo pipefail
+
 if ! command -v psql &>/dev/null; then
-  echo "Error: psql command not found" >&2
+  printf 'Error: psql command not found\n' >&2
   exit 1
 fi
 
-user="$1"
-pass="$2"
-db="$3"
+user="${1:-}"
+pass="${2:-}"
+db="${3:-$user}"
 
-[ -z "$user" ] && echo "Missing user" && exit 1
-[ -z "$pass" ] && echo "Missing password" && exit 1
-[ -z "$db" ] && db="$user"
+if [[ -z "$user" ]]; then
+  printf 'Error: Missing user\n' >&2
+  exit 1
+fi
 
-psql -c "create role ${user} with createdb encrypted password '${pass}' login;"
-psql -c "alter user ${user} superuser;"
-psql -c "create database ${db} with owner ${user};"
+if [[ -z "$pass" ]]; then
+  printf 'Error: Missing password\n' >&2
+  exit 1
+fi
+
+# Use format string to safely quote the identifier and literal
+psql -c "CREATE ROLE $(printf '%I' "$user") WITH CREATEDB ENCRYPTED PASSWORD $(printf '%L' "$pass") LOGIN;"
+psql -c "ALTER USER $(printf '%I' "$user") SUPERUSER;"
+psql -c "CREATE DATABASE $(printf '%I' "$db") WITH OWNER $(printf '%I' "$user");"

@@ -1,0 +1,68 @@
+# GUI/Desktop packages (requires display server)
+
+# Wayland/Hyprland ecosystem
+hyprland
+hyprlock
+hypridle
+hyprsunset
+hyprmon-bin
+uwsm
+
+# Notifications
+mako
+libnotify
+
+# System bar & utilities
+waybar
+xdg-utils
+
+# Wallpaper
+swww
+
+# Screenshot & clipboard
+grim
+slurp
+wl-clipboard
+wayfreeze
+
+# Audio system
+wireplumber
+pamixer
+wiremix
+easyeffects
+lsp-plugins
+
+# Brightness & display control
+brightnessctl
+ddcutil
+ddcutil-service
+swayosd
+
+# Power management
+# NOTE: Using TLP instead of power-profiles-daemon (see optional.packages)
+# upower - not currently installed, add if needed
+
+# Keyboard remapping
+keyd
+
+# Camera controls
+cameractrls
+
+# System tray clipboard manager
+elephant
+
+# Bluetooth
+bluez-utils
+bluetui
+
+# Terminal emulator
+ghostty
+
+# Fonts
+ttf-hack-nerd
+
+# Password manager
+1password
+
+# UI dialogs
+zenity

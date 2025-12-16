@@ -2,9 +2,28 @@
 
 SCRIPTS_DIR="$HOME/.config/hypr/scripts"
 SYSTEMD_DIR="$HOME/.config/systemd/user"
+CACHE_DIR="$HOME/.cache/sync-hypr-ipc-scripts"
+CACHE_FILE="$CACHE_DIR/script-hashes"
 MAGIC_STRING="@systemd"
 
-mkdir -p "$SYSTEMD_DIR"
+mkdir -p "$SYSTEMD_DIR" "$CACHE_DIR"
+
+# Associative arrays for tracking state
+declare -A cached_hashes    # servicename -> hash (from cache file)
+declare -A current_hashes   # servicename -> hash (computed this run)
+declare -A seen_services    # servicename -> 1 (services processed this run)
+
+# Compute SHA256 hash of a file
+get_hash() {
+    sha256sum "$1" 2>/dev/null | cut -d' ' -f1
+}
+
+# Load existing cache
+if [[ -f "$CACHE_FILE" ]]; then
+    while IFS='=' read -r service hash; do
+        [[ -n "$service" && -n "$hash" ]] && cached_hashes["$service"]="$hash"
+    done < "$CACHE_FILE"
+fi
 
 echo "Syncing Hyprland services..."
 
@@ -23,7 +42,23 @@ for script in "$SCRIPTS_DIR"/*; do
     servicename="${filename%.*}.service"
     servicefile="$SYSTEMD_DIR/$servicename"
 
-    echo "  [SYNC] $filename -> $servicename"
+    # Compute and store current hash
+    script_hash=$(get_hash "$script")
+    current_hashes["$servicename"]="$script_hash"
+    seen_services["$servicename"]=1
+
+    # Check if script has changed
+    cached_hash="${cached_hashes[$servicename]:-}"
+    needs_restart=false
+
+    if [[ -z "$cached_hash" ]]; then
+        echo "  [NEW] $filename -> $servicename"
+    elif [[ "$cached_hash" != "$script_hash" ]]; then
+        echo "  [CHANGED] $filename -> $servicename"
+        needs_restart=true
+    else
+        echo "  [UNCHANGED] $filename -> $servicename"
+    fi
 
     # 1. Enforce executable permission automatically
     chmod +x "$script"
@@ -46,11 +81,48 @@ WantedBy=graphical-session.target
 EOF
 
     systemctl --user daemon-reload
-    
-    if ! systemctl --user is-active --quiet "$servicename"; then
+
+    if $needs_restart && systemctl --user is-active --quiet "$servicename"; then
+        systemctl --user restart "$servicename"
+        echo "    -> Restarted (script changed)"
+    elif ! systemctl --user is-active --quiet "$servicename"; then
         systemctl --user enable --now "$servicename"
         echo "    -> Started"
     else
         echo "    -> Already running"
     fi
 done
+
+# Cleanup: stop and remove services for deleted scripts
+for servicename in "${!cached_hashes[@]}"; do
+    if [[ -z "${seen_services[$servicename]:-}" ]]; then
+        servicefile="$SYSTEMD_DIR/$servicename"
+        echo "  [REMOVED] $servicename (script no longer exists)"
+
+        if systemctl --user is-active --quiet "$servicename"; then
+            systemctl --user stop "$servicename"
+            echo "    -> Stopped"
+        fi
+
+        if systemctl --user is-enabled --quiet "$servicename" 2>/dev/null; then
+            systemctl --user disable "$servicename"
+            echo "    -> Disabled"
+        fi
+
+        if [[ -f "$servicefile" ]]; then
+            rm "$servicefile"
+            echo "    -> Service file deleted"
+        fi
+
+        systemctl --user daemon-reload
+    fi
+done
+
+# Save updated cache
+{
+    for servicename in "${!current_hashes[@]}"; do
+        echo "${servicename}=${current_hashes[$servicename]}"
+    done
+} > "$CACHE_FILE"
+
+echo "Done. Cache updated at $CACHE_FILE"

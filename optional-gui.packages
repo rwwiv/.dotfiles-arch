@@ -1,0 +1,48 @@
+# Optional packages requiring GUI/desktop environment
+
+# Development tools
+zed
+
+# Document viewers
+zathura
+zathura-pdf-poppler
+
+# File manager
+yazi
+
+# OCR
+tesseract
+tesseract-data-eng
+
+# Remote desktop
+freerdp
+pass
+
+# Gaming
+gamescope
+steam
+xpadneo-dkms        # Xbox controller driver
+
+# Applications
+nautilus
+signal-desktop
+obsidian
+typora
+zen-browser-bin     # Privacy-focused browser (AUR)
+flatpak             # Flatpak package manager
+solvespace          # Parametric CAD
+
+# Wayland debugging
+wev                 # Wayland event viewer (like xev)
+
+# System monitoring
+nvtop               # GPU process monitor
+
+# Audio tools
+cava                # Audio visualizer
+calf                # Audio plugins (for EasyEffects/Carla)
+jamesdsp-pipewire-bin  # Audio DSP effects (AUR)
+pulsemixer          # CLI PulseAudio/PipeWire mixer
+
+# Portal extensions
+xdg-desktop-portal-termfilechooser-hunkyburrito-git

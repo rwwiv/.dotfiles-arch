@@ -1,6 +1,6 @@
 add_newline = false
 command_timeout = 200
-format = "$hostname[$directory$git_branch$git_status]($style)$character"
+format = "$hostname${custom.shpool}[$directory$git_branch$git_status]($style)$character"
 
 [character]
 error_symbol = "[✖](bold red) "
@@ -37,3 +37,14 @@ deleted    = ""
 [hostname]
 format = '[$ssh_symbol$hostname]($style) : '
 ssh_symbol = "⌁ "
+
+
+[custom.shpool]
+description = "Shpool Session Name & Host"
+# Only show if inside a shpool session
+when = 'test -n "$SHPOOL_SESSION_NAME"'
+# Output format: "session_name @ hostname"
+command = 'echo "$SHPOOL_SESSION_NAME @ $(hostname)"'
+format = '[$symbol$output]($style) : '
+symbol = "∞ "
+style = "bold purple"

@@ -1,0 +1,28 @@
+# Hardware support packages (drivers, firmware, microcode)
+# These provide essential hardware functionality, not debugging
+
+# CPU microcode
+intel-ucode
+
+# Video acceleration
+intel-media-driver   # Intel VAAPI driver (iHD) for hardware video decode
+
+# Audio firmware
+sof-firmware         # Sound Open Firmware for modern Intel audio
+
+# System firmware & hardware
+fwupd                # Firmware update daemon (LVFS support)
+fprintd              # Fingerprint reader daemon
+acpid                # ACPI event daemon (lid, power button, etc.)
+efibootmgr           # UEFI boot entry manager
+cpio                 # Archive tool (used by mkinitcpio)
+
+# Display & color
+colord               # Color management daemon (ICC profiles)
+
+# Audio production support
+realtime-privileges  # Realtime scheduling for low-latency audio
+
+# Kernel - CachyOS optimized (TODO: revisit cachyos-specific packages)
+linux-cachyos
+linux-cachyos-headers

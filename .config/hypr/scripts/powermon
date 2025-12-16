@@ -1,29 +1,22 @@
 #!/usr/bin/env python3
 # @systemd
 import subprocess
-import sys
-import os
 import asyncio
 import glob
+import os
+import re
 
 # --- CONFIGURATION ---
-BATTERY_PROFILE = "power-saver"
-AC_PROFILE = "balanced"
+LOW_BATTERY_THRESHOLD = 20  # Switch to power-saver below this percentage
+LOW_BATTERY_PROFILE = "power-saver"
 
-def get_power_source():
-    """
-    Checks sysfs for AC adapter status. 
-    Returns 'line-power' if ANY Mains adapter is online, else 'battery'.
-    """
-    for path in glob.glob("/sys/class/power_supply/*"):
-        try:
-            with open(os.path.join(path, "type"), "r") as f:
-                if "Mains" not in f.read(): continue
-            with open(os.path.join(path, "online"), "r") as f:
-                if f.read().strip() == "1": return "line-power"
-        except OSError:
-            continue
-    return "battery"
+# Profile display names and icons
+PROFILE_INFO = {
+    "power-saver": ("Power Saver", "battery-level-20-symbolic"),
+    "balanced": ("Balanced", "battery-level-60-symbolic"),
+    "performance": ("Performance", "battery-level-100-charged-symbolic"),
+}
+
 
 def notify(title, message, icon):
     """Sends a notification via notify-send."""
@@ -31,53 +24,152 @@ def notify(title, message, icon):
         subprocess.run(
             ["notify-send", "-u", "low", "-i", icon, title, message],
             stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
+            stderr=subprocess.DEVNULL,
         )
     except Exception:
         pass
 
-def apply_mode(mode):
-    if mode == "battery":
-        print("[Power] Engaging Battery Mode")
-        subprocess.run(["powerprofilesctl", "set", BATTERY_PROFILE], stdout=subprocess.DEVNULL)
-        notify("Power Profile", f"Switched to {BATTERY_PROFILE}", "battery-level-60-symbolic")
-    else:
-        print("[Power] Engaging AC Mode")
-        subprocess.run(["powerprofilesctl", "set", AC_PROFILE], stdout=subprocess.DEVNULL)
-        notify("Power Profile", f"Switched to {AC_PROFILE}", "battery-level-100-charged-symbolic")
 
-async def monitor_power():
-    print("[Power] Starting monitoring...")
-    
-    current_source = get_power_source()
-    print(f"[Power] Initial State: {current_source}")
-    apply_mode(current_source)
+def get_current_profile():
+    """Get the current power profile from powerprofilesctl."""
+    try:
+        result = subprocess.run(
+            ["powerprofilesctl", "get"],
+            capture_output=True,
+            text=True,
+        )
+        return result.stdout.strip()
+    except Exception:
+        return None
 
-    # Monitor upower output as a trigger mechanism only
-    proc = subprocess.Popen(
-        ["upower", "--monitor"],
-        stdout=subprocess.PIPE,
+
+def set_profile(profile):
+    """Set the power profile."""
+    subprocess.run(
+        ["powerprofilesctl", "set", profile],
+        stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
-        text=True,
-        bufsize=1
     )
 
+
+def get_battery_percentage():
+    """Get the current battery percentage from sysfs."""
+    for path in glob.glob("/sys/class/power_supply/BAT*"):
+        try:
+            with open(os.path.join(path, "capacity"), "r") as f:
+                return int(f.read().strip())
+        except (OSError, ValueError):
+            continue
+    return None
+
+
+def is_on_battery():
+    """Check if running on battery power."""
+    for path in glob.glob("/sys/class/power_supply/*"):
+        try:
+            with open(os.path.join(path, "type"), "r") as f:
+                if "Mains" not in f.read():
+                    continue
+            with open(os.path.join(path, "online"), "r") as f:
+                if f.read().strip() == "1":
+                    return False
+        except OSError:
+            continue
+    return True
+
+
+async def monitor_ppd_profile():
+    """Monitor power-profiles-daemon for profile changes via dbus-monitor."""
+    print("[PPD] Monitoring profile changes...")
+
+    proc = await asyncio.create_subprocess_exec(
+        "dbus-monitor",
+        "--system",
+        "type='signal',interface='org.freedesktop.DBus.Properties',"
+        "member='PropertiesChanged',path='/net/hadess/PowerProfiles'",
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.DEVNULL,
+    )
+    assert proc.stdout is not None
+
+    current_profile = get_current_profile()
+    print(f"[PPD] Initial profile: {current_profile}")
+
+    buffer = ""
     try:
-        for line in iter(proc.stdout.readline, ''):
-            # Trigger on AC or Battery events
-            if "line_power" in line or "battery" in line:
-                new_source = get_power_source()
-                if new_source != current_source:
-                    print(f"[Power] Change detected: {current_source} -> {new_source}")
-                    current_source = new_source
-                    apply_mode(current_source)
-    except Exception as e:
-        print(f"Error: {e}")
+        while True:
+            data = await proc.stdout.read(1024)
+            if not data:
+                break
+            buffer += data.decode()
+
+            # Look for ActiveProfile in the dbus-monitor output
+            if "ActiveProfile" in buffer:
+                # Extract the profile value
+                match = re.search(r'string "ActiveProfile".*?string "([\w-]+)"', buffer, re.DOTALL)
+                if match:
+                    new_profile = match.group(1)
+                    if new_profile != current_profile:
+                        print(f"[PPD] Profile changed: {current_profile} -> {new_profile}")
+                        current_profile = new_profile
+
+                        display_name, icon = PROFILE_INFO.get(
+                            new_profile, (new_profile.title(), "battery-symbolic")
+                        )
+                        notify("Power Profile", f"Switched to {display_name}", icon)
+
+                # Clear buffer after processing
+                buffer = ""
+
+    except asyncio.CancelledError:
+        pass
     finally:
-        proc.kill()
+        proc.terminate()
+        await proc.wait()
+
+
+async def monitor_battery_level():
+    """Monitor battery level and switch to power-saver when low."""
+    print(f"[Battery] Monitoring for low battery (threshold: {LOW_BATTERY_THRESHOLD}%)")
+
+    triggered_low_battery = False
+
+    while True:
+        await asyncio.sleep(30)  # Check every 30 seconds
+
+        if not is_on_battery():
+            triggered_low_battery = False  # Reset when on AC
+            continue
+
+        percentage = get_battery_percentage()
+        if percentage is None:
+            continue
+
+        current_profile = get_current_profile()
+
+        if percentage <= LOW_BATTERY_THRESHOLD and not triggered_low_battery:
+            if current_profile != LOW_BATTERY_PROFILE:
+                print(f"[Battery] Low battery ({percentage}%), switching to {LOW_BATTERY_PROFILE}")
+                set_profile(LOW_BATTERY_PROFILE)
+            triggered_low_battery = True
+
+        elif percentage > LOW_BATTERY_THRESHOLD + 5:  # Hysteresis
+            triggered_low_battery = False
+
+
+async def main():
+    print("[Power] Starting powermon...")
+
+    # Run both monitors concurrently
+    await asyncio.gather(
+        monitor_ppd_profile(),
+        monitor_battery_level(),
+    )
+
 
 if __name__ == "__main__":
     try:
-        asyncio.run(monitor_power())
+        asyncio.run(main())
     except KeyboardInterrupt:
+        print("\n[Power] Shutting down...")
         pass
